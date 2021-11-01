@@ -1,0 +1,54 @@
+model_params:
+    model: 'constraintmatch'
+    loss: KCL
+    architecture:
+        arch: 'lenet'
+        out_dim: 10
+        in_channel: 1
+        img_sz: 28
+
+exp_params:
+    dataset: 'mnist'
+    batch_size: 100
+    batch_size_ul: 300
+    val_size: 5000
+    num_constraints: 1000
+    num_classes: 10
+    k: NULL
+    learning_rate: 0.03
+    weight_decay: 0.000001
+    momentum: 0.9
+    scheduler: 'cosine'
+    pseudo_label: False
+    constraintmatch: True
+    loss_type: 'ce_loss'
+    lambda_unsup: 0.1
+    threshold: 0.95
+    pl_update: 25
+    num_plabels: 100
+    fold: 0
+    plot: 0
+    num_workers: 0
+
+trainer_params:
+    max_epochs: 10
+    gpus: -1
+
+logging_params:
+    manual_seed: 1337
+    experiment_name: 'mnist_test'
+    run_name: 'cm'
+
+search_space:
+    learning_rate:
+        low: 0.000001
+        high: 0.1
+        type: "log"
+    lambda_unsup: 
+        low: 0.0001
+        high: 1.0
+        type: "log"
+    weight_decay: 
+        low: 0.000000001
+        high: 0.001
+        type: "log"        

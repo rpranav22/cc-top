@@ -1,0 +1,36 @@
+model_params:
+    model: 'supervised'
+    loss: KCL
+    architecture:
+        arch: 'lenet'
+        out_dim: 10
+        in_channel: 1
+        img_sz: 28
+
+exp_params:
+    dataset: 'mnist'
+    batch_size: 200
+    val_size: 5000
+    num_constraints: 1000
+    num_classes: 10
+    k: NULL
+    learning_rate: 0.03
+    weight_decay: 0.000001
+    momentum: 0.9
+    scheduler: 'cosine'
+    pseudo_label: False
+    constraintmatch: False
+    pl_update: 25
+    num_plabels: 100
+    fold: 0
+    plot: 0
+    num_workers: 0
+
+trainer_params:
+    max_epochs: 10
+    gpus: -1
+
+logging_params:
+    manual_seed: 1337
+    experiment_name: 'mnist_test'
+    run_name: 'cm'
