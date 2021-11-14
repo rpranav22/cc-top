@@ -1,2 +1,4 @@
 14 nov - 12:10
 -> continue with filling out lda.py
+
+-> to build constrainsts change _split and save and load_dataset functions to include and init function of newgroup class. It works otherwise

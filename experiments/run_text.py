@@ -5,6 +5,7 @@ import torch
 import numpy as np
 import time
 import torch.backends.cudnn as cudnn
+from sscc.data.newsgroups import newsgroups
 
 from sscc.experiments import Experiment, save_dict_as_yaml_mlflow
 from sscc.utils import *
@@ -15,7 +16,7 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='experiments/configs/newsgroup_lda.yaml')
+                        default='configs/newsgroup_lda.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')                        
     parser.add_argument('--batch_size', type=int, default=None,
@@ -36,9 +37,29 @@ def run_experiment(args):
 
     # update config
     config = update_config(config=config, args=args)
+    params = config['exp_params']
 
     # compile model
     model = parse_model_config(config)
+
+    if params['dataset'] == 'newsgroups':
+        train_data = newsgroups(root='./data',
+                       part='train',
+                       val_size=params['val_size'],
+                       num_constraints=params['num_constraints'],
+                       k=params['k'])
+        test_data = newsgroups(root='./data',
+                       part='test',
+                       val_size=params['val_size'],
+                       num_constraints=params['num_constraints'],
+                       k=params['k'])
+        val_data = newsgroups(root='./data',
+                       part='val',
+                       val_size=params['val_size'],
+                       num_constraints=params['num_constraints'],
+                       k=params['k'])
+
+    print(type(train_data), type(train_data.x), len(train_data.x))
 
     print("I have reached till here")
 

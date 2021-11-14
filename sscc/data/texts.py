@@ -1,3 +1,5 @@
+import re
+from typing import List
 import numpy as np
 import pandas as pd
 import torch
@@ -16,11 +18,13 @@ class TextDataset(data.Dataset):
     def __init__(self,
                  root: str,
                  part: str,
-                 val_size: int,
+                 val_size: float,
                  num_constraints: int,
                  k: int,
                  seed: int=1337,
-                 test_size: int=4000,
+                 test_size: float=0.2,
+                 clean_text: bool = True, 
+                 remove_stopwords: bool = True,
                  download: bool=True,
                  **kwargs):
         """Text Data Base Class
@@ -42,6 +46,8 @@ class TextDataset(data.Dataset):
         # self.transform = transform
         self.test_size = test_size
         self.val_size = val_size
+        self.clean_text = clean_text
+        self.remove_stopwords = remove_stopwords
         self.k = k
         self.num_constraints = num_constraints
         self.seed = seed
@@ -100,21 +106,24 @@ class TextDataset(data.Dataset):
 
         return x, y
 
-    def load_dataset(self, fold, part='train'):
+    def load_dataset(self, part='train', clean_text=True, remove_stopwords=True):
 
-        path = os.path.join(self.root, self.base_folder, f'fold_{fold}')
+        path = os.path.join(self.root, self.base_folder)
 
         with open(f"{path}/X_{part}", 'rb') as fp:
             x = pickle.load(fp)
         with open(f"{path}/Y_{part}", 'rb') as fp:
             y = pickle.load(fp)
 
-        y = y.astype(int)
+        y = np.asarray(y).astype(int)
 
         assert len(x) == len(y)
-        constraints = pd.read_csv(f"{path}/C_{part}.csv")
 
-        return x, y, constraints
+        if clean_text:
+            x = self.clean_texts(x)
+        # constraints = pd.read_csv(f"{path}/C_{part}.csv")
+
+        return x, y #, constraints
 
     def _split_and_save(self, x_train, y_train, y_test=None, x_test=None):
         """
@@ -139,7 +148,7 @@ class TextDataset(data.Dataset):
         #     np.random.seed(self.seed)
 
         dataset_path = os.path.join(self.root, self.base_folder)
-        os.mkdir(dataset_path)
+        # os.mkdir(dataset_path)
 
         if not y_test and not x_test:
             x_train, x_test, y_train, y_test = train_test_split(x_train, y_train,
@@ -152,15 +161,15 @@ class TextDataset(data.Dataset):
                                                             random_state=self.seed,
                                                             stratify=y_train)
         
-        # build constraints
-        c_df_train = self.build_constraints(y_train, self.num_constraints, seed=self.seed)
-        c_df_val = self.build_constraints(y_val, self.num_constraints, seed=self.seed)
-        c_df_test = self.build_constraints(y_test, self.num_constraints, seed=self.seed)
+        # # build constraints
+        # c_df_train = self.build_constraints(np.array(y_train), self.num_constraints, seed=self.seed)
+        # c_df_val = self.build_constraints(np.array(y_val), self.num_constraints, seed=self.seed)
+        # c_df_test = self.build_constraints(np.array(y_test), self.num_constraints, seed=self.seed)
 
-        # store sampled constraints
-        c_df_train.to_csv(f"{dataset_path}/C_train.csv")
-        c_df_val.to_csv(f"{dataset_path}/C_val.csv")
-        c_df_test.to_csv(f"{dataset_path}/C_test.csv")
+        # # store sampled constraints
+        # c_df_train.to_csv(f"{dataset_path}/C_train.csv")
+        # c_df_val.to_csv(f"{dataset_path}/C_val.csv")
+        # c_df_test.to_csv(f"{dataset_path}/C_test.csv")
 
         # store split data as .npy array
         with open(f"{dataset_path}/X_train", 'wb') as fp:
@@ -184,6 +193,20 @@ class TextDataset(data.Dataset):
         else:
             return False
 
+    def clean_texts(self, data: List(str)):
+        """
+        Removes emails and newline characters
+        """
+        data = [re.sub('\S*@\S*\s?', '', sent) for sent in data]
+
+        # Remove new line characters
+        data = [re.sub('\s+', ' ', sent) for sent in data]
+
+        # Remove distracting single quotes
+        data = [re.sub("\'", "", sent) for sent in data]
+
+        return data
+
     def build_constraints(self, y: np.ndarray, num_constraints: int, seed: int=0) -> np.ndarray:
         """Samples random pairwise constraints.
 
@@ -204,7 +227,7 @@ class TextDataset(data.Dataset):
             assert len(y) * self.k >= num_constraints, f"too few obs: {len(y)} for required num_constraints {num_constraints} given parameter k: {self.k}"
 
         np.random.seed(seed)
-        print(f'=== SEED {seed}, FOLD {self.fold}')
+        print(f'=== SEED {seed}, FOLD ')
         idx_sample_basis = np.arange(0, len(y))
 
         ml_ind1, ml_ind2 = [], []
@@ -276,3 +299,81 @@ class TextDataset(data.Dataset):
         print(f'\nI sampled {self.num_constraints} constraints with k={self.k} \nresulting in {len(c_df)} constraints after TC/CE calculation\n')
 
         return c_df
+    
+    def transitive_closure(self, ml_ind1, ml_ind2, cl_ind1, cl_ind2, n):
+        """
+        This function calculate the total transtive closure for must-links and the full entailment
+        for cannot-links.
+
+        # Arguments
+            ml_ind1, ml_ind2 = instances within a pair of must-link constraints
+            cl_ind1, cl_ind2 = instances within a pair of cannot-link constraints
+            n = total training instance number
+
+        # Return
+            transitive closure (must-links)
+            entailment of cannot-links
+        """
+        ml_graph = dict()
+        cl_graph = dict()
+        for i in range(n):
+            ml_graph[i] = set()
+            cl_graph[i] = set()
+
+        def add_both(d, i, j):
+            d[i].add(j)
+            d[j].add(i)
+
+        for (i, j) in zip(ml_ind1, ml_ind2):
+            add_both(ml_graph, i, j)
+
+        def dfs(i, graph, visited, component):
+            visited[i] = True
+            for j in graph[i]:
+                if not visited[j]:
+                    dfs(j, graph, visited, component)
+            component.append(i)
+
+        visited = [False] * n
+        for i in range(n):
+            if not visited[i]:
+                component = []
+                dfs(i, ml_graph, visited, component)
+                for x1 in component:
+                    for x2 in component:
+                        if x1 != x2:
+                            ml_graph[x1].add(x2)
+        for (i, j) in zip(cl_ind1, cl_ind2):
+            add_both(cl_graph, i, j)
+            for y in ml_graph[j]:
+                add_both(cl_graph, i, y)
+            for x in ml_graph[i]:
+                add_both(cl_graph, x, j)
+                for y in ml_graph[j]:
+                    add_both(cl_graph, x, y)
+        ml_res_set = set()
+        cl_res_set = set()
+        for i in ml_graph:
+            for j in ml_graph[i]:
+                if j != i and j in cl_graph[i]:
+                    raise Exception('inconsistent constraints between %d and %d' % (i, j))
+                if i <= j:
+                    ml_res_set.add((i, j))
+                else:
+                    ml_res_set.add((j, i))
+        for i in cl_graph:
+            for j in cl_graph[i]:
+                if i <= j:
+                    cl_res_set.add((i, j))
+                else:
+                    cl_res_set.add((j, i))
+        ml_res1, ml_res2 = [], []
+        cl_res1, cl_res2 = [], []
+        for (x, y) in ml_res_set:
+            ml_res1.append(x)
+            ml_res2.append(y)
+        for (x, y) in cl_res_set:
+            cl_res1.append(x)
+            cl_res2.append(y)
+
+        return np.array(ml_res1), np.array(ml_res2), np.array(cl_res1), np.array(cl_res2)
