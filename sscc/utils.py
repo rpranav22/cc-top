@@ -1,4 +1,5 @@
 import torch
+from sscc.models.lda import LDA
 
 from sscc.models.supervised import Supervised
 from sscc.models.scm import SCM
@@ -15,7 +16,8 @@ from sscc.architectures.resnet18_small import ResNet18
 models = {'supervised': Supervised,
           'scm': SCM,
           'ccm': CCM,
-          'pseudolabel': PseudoLabel}
+          'pseudolabel': PseudoLabel,
+          'unsupervised': LDA}
 
 architectures = {'lenet': LeNet,
                  'vgg': VGG,
@@ -37,8 +39,9 @@ def parse_model_config(config):
     model_param = config.get('model_params')
     model = models[model_param['model']]
 
-    architecture = parse_architecture_config(config)
-    model_instance = model(architecture, model_param['loss'])
+    # architecture = parse_architecture_config(config)
+    # model_instance = model(architecture, model_param['loss'])
+    model_instance = model()
 
     return model_instance
 

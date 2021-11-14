@@ -1,0 +1,2 @@
+14 nov - 12:10
+-> continue with filling out lda.py

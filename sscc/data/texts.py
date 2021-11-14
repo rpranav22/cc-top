@@ -3,6 +3,7 @@ import pandas as pd
 import torch
 import os
 import pdb
+import pickle
 
 from torch.utils import data
 from sklearn.model_selection import train_test_split
@@ -19,7 +20,7 @@ class TextDataset(data.Dataset):
                  num_constraints: int,
                  k: int,
                  seed: int=1337,
-                 transform=None,
+                 test_size: int=4000,
                  download: bool=True,
                  **kwargs):
         """Text Data Base Class
@@ -38,7 +39,8 @@ class TextDataset(data.Dataset):
             root = os.path.expanduser(root)
         self.root = root
         self.part = part
-        self.transform = transform
+        # self.transform = transform
+        self.test_size = test_size
         self.val_size = val_size
         self.k = k
         self.num_constraints = num_constraints
@@ -46,20 +48,20 @@ class TextDataset(data.Dataset):
 
     @property
     def size(self):
-        if self.part == 'train':
-            return self.c.shape[0]
-        else:
-            return self.x.shape[0]
+        # if self.part == 'train':
+        return self.c.shape[0]
+        # else:
+        #     return self.x.shape[0]
 
     @property
     def num_classes(self):
-        return len(np.unique(self.y))
+        return len(self.y)
 
     def __len__(self):
-        if self.part == 'train':
-            return self.c.shape[0]
-        else:
-            return self.x.shape[0]
+        # if self.part == 'train':
+        return len(self.x)
+        # else:
+        #     return self.x.shape[0]
 
     def __getitem__(self, index):
         """the iterator over indices work differently for train and val/test data.
@@ -70,40 +72,43 @@ class TextDataset(data.Dataset):
                    For this, one sample corresponds to one observation.
                    The constraints are then built in data.utils.supervised_collate_fn()
         """
-        if self.part == 'train':
-            cons_info = self.c.iloc[index, :]
-            i, j = cons_info['i'], cons_info['j']
-            c_ij = cons_info['c_ij']
-            y_i, y_j = cons_info['y_i'], cons_info['y_j']
+        # if self.part == 'train':
+        #     cons_info = self.c.iloc[index, :]
+        #     i, j = cons_info['i'], cons_info['j']
+        #     c_ij = cons_info['c_ij']
+        #     y_i, y_j = cons_info['y_i'], cons_info['y_j']
 
-            x_i = torch.tensor(self.x[i]).to(torch.float64).to(self.device)
-            x_j = torch.tensor(self.x[j]).to(torch.float64).to(self.device)
-            y_i = torch.tensor(y_i).to(self.device)
-            y_j = torch.tensor(y_j).to(self.device)
+        #     x_i = torch.tensor(self.x[i]).to(torch.float64).to(self.device)
+        #     x_j = torch.tensor(self.x[j]).to(torch.float64).to(self.device)
+        #     y_i = torch.tensor(y_i).to(self.device)
+        #     y_j = torch.tensor(y_j).to(self.device)
 
-            if self.transform:
-                x_i = self.transform(x_i)
-                x_j = self.transform(x_j)
+        #     if self.transform:
+        #         x_i = self.transform(x_i)
+        #         x_j = self.transform(x_j)
 
-            return x_i, x_j, y_i, y_j, c_ij
-        else:
-            x = self.x[index]
-            y = self.y[index]
+        #     return x_i, x_j, y_i, y_j, c_ij
+        # else:
+        x = self.x[index]
+        y = self.y[index]
 
-            x = torch.tensor(x).to(torch.float64).to(self.device)
-            y = torch.tensor(y).to(self.device)
+        # x = torch.tensor(x).to(torch.float64).to(self.device)
+        # y = torch.tensor(y).to(self.device)
 
-            if self.transform:
-                x = self.transform(x)
+        # if self.transform:
+        #     x = self.transform(x)
 
-            return x, y
+        return x, y
 
     def load_dataset(self, fold, part='train'):
 
         path = os.path.join(self.root, self.base_folder, f'fold_{fold}')
 
-        x = np.load(file=f"{path}/X_{part}.npy").astype('float64')
-        y = np.load(file=f"{path}/Y_{part}.npy").astype('int')
+        with open(f"{path}/X_{part}", 'rb') as fp:
+            x = pickle.load(fp)
+        with open(f"{path}/Y_{part}", 'rb') as fp:
+            y = pickle.load(fp)
+
         y = y.astype(int)
 
         assert len(x) == len(y)
@@ -111,7 +116,7 @@ class TextDataset(data.Dataset):
 
         return x, y, constraints
 
-    def _split_and_save(self, x_test, x_train, y_test, y_train):
+    def _split_and_save(self, x_train, y_train, y_test=None, x_test=None):
         """
         helper method to split train/test data into train/val/test data and store them as .npy arrays
         samples constraints from the labeled datasets on the fly
@@ -128,36 +133,49 @@ class TextDataset(data.Dataset):
         Where C refers to the constraint-matrix
         """
 
-        folds = 5
-        for fold in range(folds):
-            # reset seed
-            np.random.seed(self.seed)
+        # folds = 5
+        # for fold in range(folds):
+        #     # reset seed
+        #     np.random.seed(self.seed)
 
-            dataset_path = os.path.join(self.root, self.base_folder, f'fold_{fold}')
-            os.mkdir(dataset_path)
+        dataset_path = os.path.join(self.root, self.base_folder)
+        os.mkdir(dataset_path)
 
-            x_train, x_val, y_train, y_val = train_test_split(x_train, y_train,
-                                                              test_size=self.val_size,
-                                                              random_state=self.seed,
-                                                              stratify=y_train)
+        if not y_test and not x_test:
+            x_train, x_test, y_train, y_test = train_test_split(x_train, y_train,
+                                                            test_size=self.test_size,
+                                                            random_state=self.seed,
+                                                            stratify=y_train)
+
+        x_train, x_val, y_train, y_val = train_test_split(x_train, y_train,
+                                                            test_size=self.val_size,
+                                                            random_state=self.seed,
+                                                            stratify=y_train)
+        
+        # build constraints
+        c_df_train = self.build_constraints(y_train, self.num_constraints, seed=self.seed)
+        c_df_val = self.build_constraints(y_val, self.num_constraints, seed=self.seed)
+        c_df_test = self.build_constraints(y_test, self.num_constraints, seed=self.seed)
+
+        # store sampled constraints
+        c_df_train.to_csv(f"{dataset_path}/C_train.csv")
+        c_df_val.to_csv(f"{dataset_path}/C_val.csv")
+        c_df_test.to_csv(f"{dataset_path}/C_test.csv")
+
+        # store split data as .npy array
+        with open(f"{dataset_path}/X_train", 'wb') as fp:
+            pickle.dump(x_train, fp)
+        with open(f"{dataset_path}/X_val", 'wb') as fp:
+            pickle.dump(x_val, fp)
+        with open(f"{dataset_path}/X_test", 'wb') as fp:
+            pickle.dump(x_test, fp)
+        with open(f"{dataset_path}/Y_train", 'wb') as fp:
+            pickle.dump(y_train, fp)
+        with open(f"{dataset_path}/Y_val", 'wb') as fp:
+            pickle.dump(y_val, fp)
+        with open(f"{dataset_path}/Y_test", 'wb') as fp:
+            pickle.dump(y_test, fp)
             
-            # build constraints
-            c_df_train = self.build_constraints(y_train, self.num_constraints, seed=self.seed+fold)
-            c_df_val = self.build_constraints(y_val, self.num_constraints, seed=self.seed+fold)
-            c_df_test = self.build_constraints(y_test, self.num_constraints, seed=self.seed+fold)
-
-            # store sampled constraints
-            c_df_train.to_csv(f"{dataset_path}/C_train.csv")
-            c_df_val.to_csv(f"{dataset_path}/C_val.csv")
-            c_df_test.to_csv(f"{dataset_path}/C_test.csv")
-
-            # store split data as .npy array
-            np.save(file=f"{dataset_path}/X_train.npy", arr=x_train)
-            np.save(file=f"{dataset_path}/X_val.npy", arr=x_val)
-            np.save(file=f"{dataset_path}/X_test.npy", arr=x_test)
-            np.save(file=f"{dataset_path}/Y_train.npy", arr=y_train)
-            np.save(file=f"{dataset_path}/Y_val.npy", arr=y_val)
-            np.save(file=f"{dataset_path}/Y_test.npy", arr=y_test)
 
     def should_download(self) -> bool:
         if not os.path.exists(self.dataset_path):
