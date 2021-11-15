@@ -61,6 +61,10 @@ def run_experiment(args):
 
     print(type(train_data), type(train_data.x), len(train_data.x))
 
+    model.run_lda(train_data.x)
+
+    model.evaluate()
+
     print("I have reached till here")
 
 if __name__ == "__main__":

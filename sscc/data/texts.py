@@ -193,7 +193,7 @@ class TextDataset(data.Dataset):
         else:
             return False
 
-    def clean_texts(self, data: List(str)):
+    def clean_texts(self, data):
         """
         Removes emails and newline characters
         """
