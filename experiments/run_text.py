@@ -1,11 +1,15 @@
 #!/usr/bin/env python
+from logging import root
 import yaml
 import argparse
 import torch 
+from transformers import Trainer, TrainingArguments
 import numpy as np
 import time
 import torch.backends.cudnn as cudnn
+from sklearn.metrics import accuracy_score
 from sscc.data.newsgroups import newsgroups
+from sscc.data.utils import get_data
 
 from sscc.experiments import Experiment, save_dict_as_yaml_mlflow
 from sscc.utils import *
@@ -42,30 +46,49 @@ def run_experiment(args):
     # compile model
     model = parse_model_config(config)
 
-    if params['dataset'] == 'newsgroups':
-        train_data = newsgroups(root='./data',
-                       part='train',
-                       val_size=params['val_size'],
-                       num_constraints=params['num_constraints'],
-                       k=params['k'])
-        test_data = newsgroups(root='./data',
-                       part='test',
-                       val_size=params['val_size'],
-                       num_constraints=params['num_constraints'],
-                       k=params['k'])
-        val_data = newsgroups(root='./data',
-                       part='val',
-                       val_size=params['val_size'],
-                       num_constraints=params['num_constraints'],
-                       k=params['k'])
+    # obtain data
+    train_data = get_data(root='./data', params=params, log_params=None, part='train')
+    val_data = get_data(root='./data', params=params, log_params=None, part='val')
 
-    print(type(train_data), type(train_data.x), len(train_data.x))
+    print(type(train_data), type(train_data.x), len(train_data), len(val_data), len(val_data.y), type(val_data.x), type(val_data.y))
 
-    model.run_lda(train_data.x)
+    # model.run_lda(train_data.x)
 
-    model.evaluate()
+    training_args = TrainingArguments(
+        output_dir='./results',          # output directory
+        num_train_epochs=3,              # total number of training epochs
+        per_device_train_batch_size=16,  # batch size per device during training
+        per_device_eval_batch_size=20,   # batch size for evaluation
+        warmup_steps=500,                # number of warmup steps for learning rate scheduler
+        weight_decay=0.01,               # strength of weight decay
+        logging_dir='./logs',            # directory for storing logs
+        load_best_model_at_end=True,     # load the best model when finished training (default metric is loss)
+        # but you can specify `metric_for_best_model` argument to change to accuracy or other metric
+        logging_steps=100,               # log & save weights each logging_steps
+        evaluation_strategy="steps",     # evaluate each `logging_steps`
+    )
+    
+    trainer = Trainer(
+        model=model.model,                         # the instantiated Transformers model to be trained
+        args=training_args,                  # training arguments, defined above
+        train_dataset=train_data,         # training dataset
+        eval_dataset=val_data,          # evaluation dataset
+        compute_metrics=compute_metrics,     # the callback that computes metrics of interest
+    )
+
+    trainer.train()
 
     print("I have reached till here")
+
+def compute_metrics(pred):
+    labels = pred.label_ids
+    preds = pred.predictions.argmax(-1)
+    # calculate accuracy using sklearn's function
+    acc = accuracy_score(labels, preds)
+    return {
+        'accuracy': acc,
+    }
+
 
 if __name__ == "__main__":
     args = parse_args()

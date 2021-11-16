@@ -9,6 +9,7 @@ import pickle
 
 from torch.utils import data
 from sklearn.model_selection import train_test_split
+from transformers import BertTokenizerFast, BertForSequenceClassification
 
 class TextDataset(data.Dataset):
     """Superclass for the text datasets
@@ -22,9 +23,11 @@ class TextDataset(data.Dataset):
                  num_constraints: int,
                  k: int,
                  seed: int=1337,
+                 max_length: int=512,
                  test_size: float=0.2,
                  clean_text: bool = True, 
                  remove_stopwords: bool = True,
+                 is_tensor: bool=True,
                  download: bool=True,
                  **kwargs):
         """Text Data Base Class
@@ -36,7 +39,6 @@ class TextDataset(data.Dataset):
             num_constraints (int): amount of constraints to be sampled for the train dataset
             k (int): the amount of neighbors per constraint to be sampled. Controls the underlying constraint graph: NULL means random sampling, k=50 means that one randomly selected data point has pairwise connections to 50 other data points (equiv. to a very dense graph)
             seed (int, optional): Seed for constraint sampling to stay reproducible. Defaults to 1337.
-            transform ([type], optional): pytorch transform procedure. Defaults to None.
             download (bool, optional): should data be downloaded. Defaults to True.
         """               
         if isinstance(root, torch._six.string_classes):
@@ -44,8 +46,11 @@ class TextDataset(data.Dataset):
         self.root = root
         self.part = part
         # self.transform = transform
+        self.model_name = "bert-base-uncased"
+        self.tokenizer = BertTokenizerFast.from_pretrained(self.model_name, do_lower_case=True)
         self.test_size = test_size
         self.val_size = val_size
+        self.max_length = max_length
         self.clean_text = clean_text
         self.remove_stopwords = remove_stopwords
         self.k = k
@@ -78,35 +83,12 @@ class TextDataset(data.Dataset):
                    For this, one sample corresponds to one observation.
                    The constraints are then built in data.utils.supervised_collate_fn()
         """
-        # if self.part == 'train':
-        #     cons_info = self.c.iloc[index, :]
-        #     i, j = cons_info['i'], cons_info['j']
-        #     c_ij = cons_info['c_ij']
-        #     y_i, y_j = cons_info['y_i'], cons_info['y_j']
+        item = {k: torch.tensor(v[index]) for k, v in self.x.items()}
+        item["labels"] = torch.tensor([self.y[index]])
+        return item
+        
 
-        #     x_i = torch.tensor(self.x[i]).to(torch.float64).to(self.device)
-        #     x_j = torch.tensor(self.x[j]).to(torch.float64).to(self.device)
-        #     y_i = torch.tensor(y_i).to(self.device)
-        #     y_j = torch.tensor(y_j).to(self.device)
-
-        #     if self.transform:
-        #         x_i = self.transform(x_i)
-        #         x_j = self.transform(x_j)
-
-        #     return x_i, x_j, y_i, y_j, c_ij
-        # else:
-        x = self.x[index]
-        y = self.y[index]
-
-        # x = torch.tensor(x).to(torch.float64).to(self.device)
-        # y = torch.tensor(y).to(self.device)
-
-        # if self.transform:
-        #     x = self.transform(x)
-
-        return x, y
-
-    def load_dataset(self, part='train', clean_text=True, remove_stopwords=True):
+    def load_dataset(self, part='train', clean_text=True, remove_stopwords=True, is_tensor=True):
 
         path = os.path.join(self.root, self.base_folder)
 
@@ -122,8 +104,13 @@ class TextDataset(data.Dataset):
         if clean_text:
             x = self.clean_texts(x)
         # constraints = pd.read_csv(f"{path}/C_{part}.csv")
+        if is_tensor:
+            x = self.tokenize_text(x)
 
         return x, y #, constraints
+    
+    def tokenize_text(self, texts):
+        return self.tokenizer(texts, truncation=True, padding=True, max_length=self.max_length)
 
     def _split_and_save(self, x_train, y_train, y_test=None, x_test=None):
         """
@@ -171,7 +158,7 @@ class TextDataset(data.Dataset):
         # c_df_val.to_csv(f"{dataset_path}/C_val.csv")
         # c_df_test.to_csv(f"{dataset_path}/C_test.csv")
 
-        # store split data as .npy array
+        # store split data as pickle file
         with open(f"{dataset_path}/X_train", 'wb') as fp:
             pickle.dump(x_train, fp)
         with open(f"{dataset_path}/X_val", 'wb') as fp:

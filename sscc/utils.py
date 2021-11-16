@@ -12,12 +12,14 @@ from sscc.architectures.resnet import ResNet
 from sscc.architectures.resnet18 import resnet18, ClusteringModel
 from sscc.architectures.wideresnet import WideResNet
 from sscc.architectures.resnet18_small import ResNet18
+from sscc.models.supervised_plm import SupervisedPLM
 
 models = {'supervised': Supervised,
           'scm': SCM,
           'ccm': CCM,
           'pseudolabel': PseudoLabel,
-          'unsupervised': LDA}
+          'unsupervised': LDA,
+          'supervised_plm': SupervisedPLM}
 
 architectures = {'lenet': LeNet,
                  'vgg': VGG,

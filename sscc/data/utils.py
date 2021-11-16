@@ -1,13 +1,17 @@
 import pdb
+import random
+import numpy as np
 import torch
 
 from torch.utils.data.dataloader import default_collate
+from transformers.file_utils import is_tf_available, is_torch_available
 from sscc.data.cifar10 import CIFAR10, transforms_cifar10_train, transforms_cifar10_test
 from sscc.data.cifar20 import CIFAR20
 from sscc.data.mnist import MNIST, transforms_mnist_train, transforms_mnist_test
 from sscc.data.fashionmnist import FASHIONMNIST, transforms_fmnist_train, transforms_fmnist_test
 from sscc.data.yaleb import YaleB
 from sscc.data.yalebextend import YaleBExt, transforms_yaleb_train
+from sscc.data.newsgroups import newsgroups
 
 def constrained_collate_fn(batch, data_collate=default_collate):
     """
@@ -118,7 +122,21 @@ def PairEnum(x,mask=None):
         x2 = x2[xmask].view(-1,x.size(1))
     return x1,x2
 
-def get_data(root, dataset, params, log_params, part):
+def set_seed(seed: int):
+    """
+    Helper function for reproducible behavior to set the seed in ``random``, ``numpy``, ``torch`` and/or ``tf`` (if
+    installed).
+
+    Args:
+        seed (:obj:`int`): The seed to set.
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    if is_torch_available():
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
+def get_data(root, params, log_params, part):
     """
     """
     if params['dataset'] == 'cifar10':
@@ -130,6 +148,15 @@ def get_data(root, dataset, params, log_params, part):
                        transform=transforms_cifar10_train if part=='train' else transforms_cifar10_test,
                        fold=params['fold'],
                        seed=log_params['manual_seed'])
+    elif params['dataset'] == 'newsgroups':
+        data = newsgroups(root=root,
+                       part=part,
+                       val_size=params['val_size'],
+                       num_constraints=params['num_constraints'],
+                       is_tensor=params['is_tensor'],
+                       clean_text=params['clean_text'],
+                       remove_stopwords=['remove_stopwords'],
+                       k=params['k'])
     elif params['dataset'] == 'cifar20':
         data = CIFAR20(root=root,
                        part=part,
