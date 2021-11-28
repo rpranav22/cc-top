@@ -64,7 +64,7 @@ def run_experiment(args):
     # store the config
     save_dict_as_yaml_mlflow(data=config, logger=mlflow_logger)
 
-    experiment = Experiment(model,
+    experiment = Experiment(model.model,
                             params=config['exp_params'],
                             log_params=config['logging_params'],
                             trainer_params=config['trainer_params'],
