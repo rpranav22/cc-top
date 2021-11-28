@@ -39,7 +39,7 @@ class Experiment(pl.LightningModule):
                  trial=None):
         super(Experiment, self).__init__()
         self.new_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model = model.to(self.new_device)
+        self.model = model
         self.model.epoch = self.current_epoch
         self.params = params
         self.log_params = log_params
@@ -53,20 +53,21 @@ class Experiment(pl.LightningModule):
 
         # initialize train/val/test data
         self.train_data = get_data(root='./data',
-                                   dataset=self.params['dataset'],
+                                #    dataset=self.params['dataset'],
                                    params=self.params,
                                    log_params=self.log_params,
                                    part='train')
         self.val_data = get_data(root='./data',
-                                 dataset=self.params['dataset'],
+                                #  dataset=self.params['dataset'],
                                  params=self.params,
                                  log_params=self.log_params,
                                  part='val')
         self.test_data = get_data(root='./data',
-                                  dataset=self.params['dataset'],
+                                #   dataset=self.params['dataset'],
                                   params=self.params,
                                   log_params=self.log_params,
                                   part='test')
+        print('loaded data cheers')
 
     def _save_model_mlflow(self):
         """Save model outside of pl as checkpoint

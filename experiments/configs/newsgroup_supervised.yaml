@@ -1,0 +1,22 @@
+model_params:
+    model: 'supervised_plm'
+    mallet: True
+
+exp_params:
+    dataset: 'newsgroups'
+    val_size: 2000
+    num_constraints: 10
+    num_classes: 20
+    is_tensor: True
+    num_workers: 0
+    clean_text: True
+    remove_stopwords: True
+    k: NULL
+    
+trainer_params:
+    max_epochs: 10
+
+logging_params:
+    manual_seed: 1337
+    experiment_name: 'supervised_test'
+    run_name: 'v1'
