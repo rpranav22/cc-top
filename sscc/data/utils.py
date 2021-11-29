@@ -2,6 +2,7 @@ import pdb
 import random
 import numpy as np
 import torch
+from sklearn.metrics import accuracy_score
 
 from torch.utils.data.dataloader import default_collate
 from transformers.file_utils import is_tf_available, is_torch_available
@@ -62,10 +63,11 @@ def constraint_match_collate_fn(batch, data_collate=default_collate):
 def prepare_supervised_task_target(target):
     """
     """
-    train_target = Class2Simi(x=target)
+    # train_target = Class2Simi(x=target)
+    train_target = target
     eval_target = target
 
-    return train_target.detach(), eval_target.detach()
+    return train_target, eval_target
 
 def prepare_task_target(target, constraints):
     """
@@ -135,6 +137,16 @@ def set_seed(seed: int):
     if is_torch_available():
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
+
+def compute_metrics(preds, labels):
+    # labels = pred.label_ids
+    # preds = pred.predictions.argmax(-1)
+    # calculate accuracy using sklearn's function
+    acc = accuracy_score(labels, preds)
+    print(len(labels), len(preds), acc, " ___________ acc")
+    return {
+        'accuracy': acc,
+    }
 
 def get_data(root, params, log_params, part):
     """
