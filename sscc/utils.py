@@ -19,7 +19,8 @@ models = {'supervised': Supervised,
           'ccm': CCM,
           'pseudolabel': PseudoLabel,
           'unsupervised': LDA,
-          'supervised_plm': SupervisedPLM}
+          'supervised_plm': SupervisedPLM,
+          'bertopic': BERTopic}
 
 architectures = {'lenet': LeNet,
                  'vgg': VGG,
