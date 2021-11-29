@@ -7,7 +7,6 @@ import torch
 import numpy as np
 import time
 import torch.backends.cudnn as cudnn
-from sklearn.metrics import accuracy_score
 from sscc.data.newsgroups import newsgroups
 from sscc.data.utils import get_data
 
@@ -50,7 +49,7 @@ def run_experiment(args):
     model = parse_model_config(config)
 
     # instantiate logger
-    mlflow_logger = MLFlowLogger(experiment_name=config['logging_params']['experiment_name'])
+    mlflow_logger = MLFlowLogger(experiment_name=config['logging_params']['experiment_name'], run_name=config['logging_params']['run_name'])
 
     # for reproducibility
     torch.manual_seed(config['logging_params']['manual_seed'])
@@ -75,7 +74,7 @@ def run_experiment(args):
     # train_data = get_data(root='./data', params=params, log_params=None, part='train')
     # val_data = get_data(root='./data', params=params, log_params=None, part='val')
 
-    print(type(experiment.train_data), type(experiment.train_data.x))
+    print(len(experiment.train_data), type(experiment.train_data.x))
 
     # model.run_lda(train_data.x)
 
@@ -102,7 +101,7 @@ def run_experiment(args):
         # eval_dataset=val_data,          # evaluation dataset
         # compute_metrics=compute_metrics,     # the callback that computes metrics of interest
                     reload_dataloaders_every_epoch=False,
-                    min_epochs=1,
+                    min_epochs=params['epochs'],
                     log_every_n_steps=10,
                     checkpoint_callback=True,
                     logger=mlflow_logger,
@@ -118,14 +117,7 @@ def run_experiment(args):
 
     print("I have reached till here")
 
-def compute_metrics(pred):
-    labels = pred.label_ids
-    preds = pred.predictions.argmax(-1)
-    # calculate accuracy using sklearn's function
-    acc = accuracy_score(labels, preds)
-    return {
-        'accuracy': acc,
-    }
+
 
 
 if __name__ == "__main__":

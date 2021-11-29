@@ -4,6 +4,7 @@
         "**/.venv/**": true,
         "**/.venv/lib/python3.6/**": true,
         "**/.venv/lib64/python3.6/**": true,
-        "**/experiments/data/**": true
+        "**/experiments/data/**": true,
+        "**/experiments/mlruns/**": true
     }
 }
