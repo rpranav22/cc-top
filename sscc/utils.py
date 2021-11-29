@@ -1,6 +1,7 @@
 import torch
 from sscc.models.lda import LDA
 
+
 from sscc.models.supervised import Supervised
 from sscc.models.scm import SCM
 from sscc.models.pseudolabel import PseudoLabel
