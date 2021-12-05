@@ -22,7 +22,7 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/newsgroup_supervised.yaml')
+                        default='configs/newsgroup_bertopic.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')                        
     parser.add_argument('--batch_size', type=int, default=None,
@@ -63,57 +63,47 @@ def run_experiment(args):
     # store the config
     save_dict_as_yaml_mlflow(data=config, logger=mlflow_logger)
 
-    experiment = Experiment(model.model,
-                            params=config['exp_params'],
-                            log_params=config['logging_params'],
-                            trainer_params=config['trainer_params'],
-                            run_name=config['logging_params']['run_name'],
-                            experiment_name=config['logging_params']['experiment_name'])
-
-    # obtain data
-    # train_data = get_data(root='./data', params=params, log_params=None, part='train')
-    # val_data = get_data(root='./data', params=params, log_params=None, part='val')
-
-    print(len(experiment.train_data), type(experiment.train_data.x))
-
-    # model.run_lda(train_data.x)
-
-    # training_args = TrainingArguments(
-    #     output_dir='./results',          # output directory
-    #     num_train_epochs=3,              # total number of training epochs
-    #     per_device_train_batch_size=16,  # batch size per device during training
-    #     per_device_eval_batch_size=20,   # batch size for evaluation
-    #     warmup_steps=500,                # number of warmup steps for learning rate scheduler
-    #     weight_decay=0.01,               # strength of weight decay
-    #     logger = mlflow_logger,            # directory for storing logs
-    #     load_best_model_at_end=True,     # load the best model when finished training (default metric is loss)
-    #     # but you can specify `metric_for_best_model` argument to change to accuracy or other metric
-    #     logging_steps=100,               # log & save weights each logging_steps
-    #     evaluation_strategy="steps", 
-    #      callbacks=[LearningRateMonitor(logging_interval='step')],
-    #                  **config['trainer_params']    # evaluate each `logging_steps`
-    # )
+    if config['model_params']['model'] == 'bertopic':
+        print("not using lightning\n")
+        train_data = get_data(root='./data', params=params, log_params=None, part='train')
+        print(f"type: {type(train_data.x)}, length: {len(train_data.x)}")
+        topic_model = model
+        topics, probs = topic_model.fit_transform(train_data.x)
+        print(f"done found {len(topics)} topics, they are \n\n")
+        print(topic_model.get_topic_info())
+        topic_model.save("bertopic_v1")
     
-    trainer = Trainer(
-        # model=model.model,                         # the instantiated Transformers model to be trained
-        # args=training_args,                  # training arguments, defined above
-        # train_dataset=train_data,         # training dataset
-        # eval_dataset=val_data,          # evaluation dataset
-        # compute_metrics=compute_metrics,     # the callback that computes metrics of interest
-                    reload_dataloaders_every_epoch=False,
-                    min_epochs=params['epochs'],
-                    log_every_n_steps=10,
-                    checkpoint_callback=True,
-                    logger=mlflow_logger,
-                    check_val_every_n_epoch=1,
-                    # num_sanity_val_steps=5,
-                    # fast_dev_run=False,
-                    # multiple_trainloader_mode='min_size',
-                    callbacks=[LearningRateMonitor(logging_interval='step')],
-                    **config['trainer_params']
-    )
+    else:
+        print("Using LightningModule")
 
-    trainer.fit(experiment)
+        experiment = Experiment(model.model,
+                                params=config['exp_params'],
+                                log_params=config['logging_params'],
+                                trainer_params=config['trainer_params'],
+                                run_name=config['logging_params']['run_name'],
+                                experiment_name=config['logging_params']['experiment_name'])
+
+        # obtain data
+        # train_data = get_data(root='./data', params=params, log_params=None, part='train')
+        # val_data = get_data(root='./data', params=params, log_params=None, part='val')
+
+        print(len(experiment.train_data), type(experiment.train_data.x))
+
+        # model.run_lda(train_data.x)
+
+        
+        trainer = Trainer(
+                        reload_dataloaders_every_epoch=False,
+                        min_epochs=params['epochs'],
+                        log_every_n_steps=10,
+                        checkpoint_callback=True,
+                        logger=mlflow_logger,
+                        check_val_every_n_epoch=1,
+                        callbacks=[LearningRateMonitor(logging_interval='step')],
+                        **config['trainer_params']
+        )
+
+        trainer.fit(experiment)
 
     print("I have reached till here")
 

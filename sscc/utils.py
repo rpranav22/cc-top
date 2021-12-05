@@ -6,6 +6,7 @@ from sscc.models.supervised import Supervised
 from sscc.models.scm import SCM
 from sscc.models.pseudolabel import PseudoLabel
 from sscc.models.ccm import CCM
+from sscc.models.bertopic import BERTopic
 
 from sscc.architectures.lenet import LeNet
 from sscc.architectures.vgg import VGG

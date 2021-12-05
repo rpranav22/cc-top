@@ -6,5 +6,8 @@
         "**/.venv/lib64/python3.6/**": true,
         "**/experiments/data/**": true,
         "**/experiments/mlruns/**": true
-    }
+    },
+    "python.analysis.extraPaths": [
+        "./BERTopic"
+    ]
 }

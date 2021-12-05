@@ -115,6 +115,7 @@ ENV/
 env.bak/
 venv.bak/
 experiments/mlruns/
+BERTopic/
 
 # Spyder project settings
 .spyderproject
@@ -133,3 +134,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+experiments/bertopic_v1
+experiments/cluster_probs_hdbscan_bertopic.pickle
+experiments/clustering_model.pickle
+experiments/x_test_embeddings.pickle
