@@ -103,11 +103,11 @@ class TextDataset(data.Dataset):
 
         if clean_text:
             x = self.clean_texts(x)
-        # constraints = pd.read_csv(f"{path}/C_{part}.csv")
+        constraints = pd.read_csv(f"{path}/C_{part}.csv")
         if is_tensor:
             x = self.tokenize_text(x)
 
-        return x, y #, constraints
+        return x, y , constraints
     
     def tokenize_text(self, texts):
         return self.tokenizer(texts, truncation=True, padding=True, max_length=self.max_length)
@@ -148,15 +148,15 @@ class TextDataset(data.Dataset):
                                                             random_state=self.seed,
                                                             stratify=y_train)
         
-        # # build constraints
-        # c_df_train = self.build_constraints(np.array(y_train), self.num_constraints, seed=self.seed)
-        # c_df_val = self.build_constraints(np.array(y_val), self.num_constraints, seed=self.seed)
-        # c_df_test = self.build_constraints(np.array(y_test), self.num_constraints, seed=self.seed)
+        # build constraints
+        c_df_train = self.build_constraints(np.array(y_train), self.num_constraints, seed=self.seed)
+        c_df_val = self.build_constraints(np.array(y_val), self.num_constraints, seed=self.seed)
+        c_df_test = self.build_constraints(np.array(y_test), self.num_constraints, seed=self.seed)
 
-        # # store sampled constraints
-        # c_df_train.to_csv(f"{dataset_path}/C_train.csv")
-        # c_df_val.to_csv(f"{dataset_path}/C_val.csv")
-        # c_df_test.to_csv(f"{dataset_path}/C_test.csv")
+        # store sampled constraints
+        c_df_train.to_csv(f"{dataset_path}/C_train.csv")
+        c_df_val.to_csv(f"{dataset_path}/C_val.csv")
+        c_df_test.to_csv(f"{dataset_path}/C_test.csv")
 
         # store split data as pickle file
         with open(f"{dataset_path}/X_train", 'wb') as fp:

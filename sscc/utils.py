@@ -44,9 +44,9 @@ def parse_model_config(config):
     model_param = config.get('model_params')
     model = models[model_param['model']]
 
-    # architecture = parse_architecture_config(config)
-    # model_instance = model(architecture, model_param['loss'])
-    model_instance = model()
+    architecture = parse_architecture_config(config)
+    model_instance = model(architecture, model_param['loss'])
+    # model_instance = model()
 
     return model_instance
 

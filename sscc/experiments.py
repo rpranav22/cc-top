@@ -153,11 +153,12 @@ class Experiment(pl.LightningModule):
                 "weight_decay": 0.0,
             },
         ]
-        optimizer = AdamW(optimizer_grouped_parameters, lr=self.params['learning_rate'], eps=self.params['adam_epsilon'])
+        optimizer = AdamW(optimizer_grouped_parameters, lr=self.params['learning_rate'])
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.params['warmup_steps'],
+            # num_warmup_steps=2,
             num_training_steps=self.total_steps,
         )
         scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
@@ -167,7 +168,7 @@ class Experiment(pl.LightningModule):
 
         self.train_gen = DataLoader(dataset=self.train_data,
                                     batch_size=self.params['batch_size'],
-                                    # collate_fn=constrained_collate_fn,
+                                    collate_fn=constrained_collate_fn,
                                     num_workers=self.params['num_workers'],
                                     shuffle=True)
 

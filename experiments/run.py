@@ -6,7 +6,7 @@ import numpy as np
 import time
 import torch.backends.cudnn as cudnn
 
-from sscc.experiments import Experiment, save_dict_as_yaml_mlflow
+from sscc.experiments_image import Experiment, save_dict_as_yaml_mlflow
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
 from pytorch_lightning.callbacks import LearningRateMonitor

@@ -63,11 +63,11 @@ def constraint_match_collate_fn(batch, data_collate=default_collate):
 def prepare_supervised_task_target(target):
     """
     """
-    # train_target = Class2Simi(x=target)
-    train_target = target
+    train_target = Class2Simi(x=target)
+    # train_target = target
     eval_target = target
 
-    return train_target, eval_target
+    return train_target.detach(), eval_target.detach()
 
 def prepare_task_target(target, constraints):
     """
