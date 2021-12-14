@@ -1,4 +1,6 @@
 14 nov - 12:10
 -> continue with filling out lda.py
 
--> to build constrainsts change _split and save and load_dataset functions to include and init function of newgroup class. It works otherwise
+-> to build constrainsts change _split and save and load_dataset functions to include and init function of newgroup class and 'texts.py'. It works otherwise
+
+-> change parse_model_config in sscc.data.utils when you change models to include forward functions and when it can parse architecture

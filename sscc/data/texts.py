@@ -45,6 +45,7 @@ class TextDataset(data.Dataset):
             root = os.path.expanduser(root)
         self.root = root
         self.part = part
+        self.dataset_path = os.path.join(self.root, self.base_folder)
         # self.transform = transform
         self.model_name = "bert-base-uncased"
         self.tokenizer = BertTokenizerFast.from_pretrained(self.model_name, do_lower_case=True)
@@ -69,10 +70,10 @@ class TextDataset(data.Dataset):
         return len(self.y)
 
     def __len__(self):
-        # if self.part == 'train':
-        return len(self.x)
-        # else:
-        #     return self.x.shape[0]
+        if self.part == 'train':
+            return self.c.shape[0]
+        else:
+            return self.x.shape[0]
 
     def __getitem__(self, index):
         """the iterator over indices work differently for train and val/test data.
@@ -83,9 +84,28 @@ class TextDataset(data.Dataset):
                    For this, one sample corresponds to one observation.
                    The constraints are then built in data.utils.supervised_collate_fn()
         """
-        item = {k: torch.tensor(v[index]) for k, v in self.x.items()}
-        item["labels"] = torch.tensor([self.y[index]])
-        return item
+        if torch.is_tensor(index):
+            index = index.tolist()
+        note = str(self.x[index])
+        target = self.y[index]
+        
+        encoding = self.tokenizer.encode_plus(
+          note,
+          add_special_tokens=True,
+          max_length=self.max_length,
+          return_token_type_ids=True,
+          truncation=True,
+          padding='max_length',
+          return_attention_mask=True,
+          return_tensors='pt',
+        )    
+        return {
+            #'text': note,
+            'label': torch.tensor(target, dtype=torch.long),
+            'input_ids': (encoding['input_ids']).flatten(),
+            'attention_mask': (encoding['attention_mask']).flatten(),
+            'token_type_ids': (encoding['token_type_ids']).flatten()
+        }
         
 
     def load_dataset(self, part='train', clean_text=True, remove_stopwords=True, is_tensor=True):
@@ -103,14 +123,14 @@ class TextDataset(data.Dataset):
 
         if clean_text:
             x = self.clean_texts(x)
-        # constraints = pd.read_csv(f"{path}/C_{part}.csv")
-        if is_tensor:
-            x = self.tokenize_text(x)
+        constraints = pd.read_csv(f"{path}/C_{part}.csv")
+        # if is_tensor:
+        #     x = self.tokenize_text(x)
 
-        return x, y #, constraints
+        return x, y , constraints
     
     def tokenize_text(self, texts):
-        return self.tokenizer(texts, truncation=True, padding=True, max_length=self.max_length)
+        return self.tokenizer.encode_plus(texts, truncation=True, padding=True, max_length=self.max_length)
 
     def _split_and_save(self, x_train, y_train, y_test=None, x_test=None):
         """
@@ -134,7 +154,7 @@ class TextDataset(data.Dataset):
         #     # reset seed
         #     np.random.seed(self.seed)
 
-        dataset_path = os.path.join(self.root, self.base_folder)
+        
         # os.mkdir(dataset_path)
 
         if not y_test and not x_test:
@@ -148,28 +168,28 @@ class TextDataset(data.Dataset):
                                                             random_state=self.seed,
                                                             stratify=y_train)
         
-        # # build constraints
-        # c_df_train = self.build_constraints(np.array(y_train), self.num_constraints, seed=self.seed)
-        # c_df_val = self.build_constraints(np.array(y_val), self.num_constraints, seed=self.seed)
-        # c_df_test = self.build_constraints(np.array(y_test), self.num_constraints, seed=self.seed)
+        # build constraints
+        c_df_train = self.build_constraints(np.array(y_train).astype(np.int32), int(self.num_constraints), seed=self.seed)
+        c_df_val = self.build_constraints(np.array(y_val).astype(np.int32), int(self.num_constraints), seed=self.seed)
+        c_df_test = self.build_constraints(np.array(y_test).astype(np.int32), int(self.num_constraints), seed=self.seed)
 
-        # # store sampled constraints
-        # c_df_train.to_csv(f"{dataset_path}/C_train.csv")
-        # c_df_val.to_csv(f"{dataset_path}/C_val.csv")
-        # c_df_test.to_csv(f"{dataset_path}/C_test.csv")
+        # store sampled constraints
+        c_df_train.to_csv(f"{self.dataset_path}/C_train.csv")
+        c_df_val.to_csv(f"{self.dataset_path}/C_val.csv")
+        c_df_test.to_csv(f"{self.dataset_path}/C_test.csv")
 
         # store split data as pickle file
-        with open(f"{dataset_path}/X_train", 'wb') as fp:
+        with open(f"{self.dataset_path}/X_train", 'wb') as fp:
             pickle.dump(x_train, fp)
-        with open(f"{dataset_path}/X_val", 'wb') as fp:
+        with open(f"{self.dataset_path}/X_val", 'wb') as fp:
             pickle.dump(x_val, fp)
-        with open(f"{dataset_path}/X_test", 'wb') as fp:
+        with open(f"{self.dataset_path}/X_test", 'wb') as fp:
             pickle.dump(x_test, fp)
-        with open(f"{dataset_path}/Y_train", 'wb') as fp:
+        with open(f"{self.dataset_path}/Y_train", 'wb') as fp:
             pickle.dump(y_train, fp)
-        with open(f"{dataset_path}/Y_val", 'wb') as fp:
+        with open(f"{self.dataset_path}/Y_val", 'wb') as fp:
             pickle.dump(y_val, fp)
-        with open(f"{dataset_path}/Y_test", 'wb') as fp:
+        with open(f"{self.dataset_path}/Y_test", 'wb') as fp:
             pickle.dump(y_test, fp)
             
 
@@ -178,7 +198,11 @@ class TextDataset(data.Dataset):
             os.makedirs(self.dataset_path)
             return True
         else:
-            return False
+            if not any(os.scandir(self.dataset_path)):
+                print('path exists but empty af')
+                return True
+            else:
+                return False
 
     def clean_texts(self, data):
         """
@@ -269,9 +293,9 @@ class TextDataset(data.Dataset):
 
         total_constraints = ml_ind1.shape[0] + cl_ind1.shape[0]
 
-        constraints_i = np.hstack((ml_ind1, cl_ind1))
-        constraints_j = np.hstack((ml_ind2, cl_ind2))
-
+        constraints_i = np.hstack((ml_ind1, cl_ind1)).astype(np.int32)
+        constraints_j = np.hstack((ml_ind2, cl_ind2)).astype(np.int32)
+        
         c_df = pd.DataFrame(index=np.arange(total_constraints),
                             columns=['idx', 'part', 'i', 'j', 'y_i', 'y_j', 'c_ij'])
 
@@ -283,7 +307,7 @@ class TextDataset(data.Dataset):
         c_df['y_j'] = y[constraints_j]
         c_df['c_ij'] = np.where(c_df['y_i'] == c_df['y_j'], 1, -1)
 
-        print(f'\nI sampled {self.num_constraints} constraints with k={self.k} \nresulting in {len(c_df)} constraints after TC/CE calculation\n')
+        print(f'\nFrom {self.part}, I sampled {self.num_constraints} constraints with k={self.k} \nresulting in {len(c_df)} constraints after TC/CE calculation\n')
 
         return c_df
     

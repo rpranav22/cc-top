@@ -23,7 +23,7 @@ class newsgroups(TextDataset):
         self.is_tensor = is_tensor
         if download:
             self.download()
-        self.x, self.y = self.load_dataset(part=self.part, clean_text=self.clean_text, remove_stopwords=self.remove_stopwords, is_tensor=self.is_tensor)
+        self.x, self.y, self.c = self.load_dataset(part=self.part, clean_text=self.clean_text, remove_stopwords=self.remove_stopwords, is_tensor=self.is_tensor)
     
     def __len__(self):
         """as the __getitem__() must work differently for train and val/test,
@@ -43,7 +43,7 @@ class newsgroups(TextDataset):
 
         if not self.should_download():
             if self.part == 'train':
-                _, y= self.load_dataset(part=self.part)
+                _, y, _= self.load_dataset(part=self.part)
                 # c_df_train = self.build_constraints(y, self.num_constraints, seed=self.seed)
                 # c_df_train.to_csv(f"{self.dataset_path}/C_train.csv")
                 return

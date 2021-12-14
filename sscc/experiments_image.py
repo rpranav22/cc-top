@@ -9,14 +9,13 @@ import math
 import tempfile
 import yaml
 
-from transformers import AdamW, get_linear_schedule_with_warmup
 from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
 from torch import optim
 from torchvision.utils import save_image
 from pytorch_lightning.loggers import MLFlowLogger
 
-from sscc.data.utils import constrained_collate_fn, supervised_collate_fn, constraint_match_collate_fn, get_data, compute_metrics
+from sscc.data.utils import constrained_collate_fn, supervised_collate_fn, constraint_match_collate_fn, get_data
 from sscc.data.images import ConstraintMatchData
 from sscc.data.cifar10 import transforms_cifar10_weak, transforms_cifar10_strong
 from sscc.data.yalebextend import transforms_yaleb_weak, transforms_yaleb_strong
@@ -40,7 +39,7 @@ class Experiment(pl.LightningModule):
                  trial=None):
         super(Experiment, self).__init__()
         self.new_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model = model
+        self.model = model.to(self.new_device)
         self.model.epoch = self.current_epoch
         self.params = params
         self.log_params = log_params
@@ -48,7 +47,6 @@ class Experiment(pl.LightningModule):
         self.run_name = run_name
         self.experiment_name = experiment_name
         self.trial = trial
-        self.metric = compute_metrics
 
         self.train_step = 0
         self.val_step = 0
@@ -69,7 +67,6 @@ class Experiment(pl.LightningModule):
                                   params=self.params,
                                   log_params=self.log_params,
                                   part='test')
-        print('loaded data cheers')
 
     def _save_model_mlflow(self):
         """Save model outside of pl as checkpoint
@@ -82,86 +79,92 @@ class Experiment(pl.LightningModule):
             with open(path, 'wb') as file:
                 # store checkpoint in temp file
                 torch.save(checkpoint, file)
-                print(f'Stored final model at {path}')
+                print(f'Stored final model')
                 self.logger.experiment.log_artifact(local_path=path, run_id=self.logger.run_id)
 
-    def forward(self, *input, **kwargs):
-            print(type(input))
-            return self.model(*input, **kwargs)
+    def forward(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
 
     def training_step(self, batch, batch_idx):
-        # outputs = self(**batch)
-        # loss = outputs[0]
-        input_ids = batch['input_ids']
-        label = batch['label']
-        attention_mask = batch['attention_mask']
-        #token_type_ids = batch['token_type_ids']
-        # fwd
-        y_hat = self(input_ids, attention_mask, label)
-        
-        # loss
-        loss_fct = torch.nn.CrossEntropyLoss()
-        loss = loss_fct(y_hat.view(-1, self.params['num_classes']), label.view(-1))
-        #loss = F.cross_entropy(y_hat, label)
-        
-        # logs
-        # tensorboard_logs = {'train_loss': loss, 'learn_rate': self.optim.param_groups[0]['lr'] }
-        return {'loss': loss}
+        outs = self.forward(batch=batch)
 
+        loss = self.model.loss_function(outs=outs, batch=batch, **self.params)
 
+        for key, value in loss.items(): self.log(name=f"trainr_{key}", value=value, prog_bar=True)
 
-    def validation_step(self, batch, batch_idx, dataloader_idx=0):
+        self.log(name='train_step', value=self.train_step)
+        self.train_step += 1
 
-        input_ids = batch['input_ids']
-        label = batch['label']
-        attention_mask = batch['attention_mask']
-        #token_type_ids = batch['token_type_ids'] 
-        # fwd
-        y_hat = self(input_ids, attention_mask, label)
-        
-        # loss
-        #loss = F.cross_entropy(y_hat, label)
-        loss_fct = torch.nn.CrossEntropyLoss()
-        loss = loss_fct(y_hat.view(-1, self.params['num_classes']), label.view(-1))
+        # pl selects the 'loss' element of the dict for backward
+        return loss
 
-        # acc
-        a, y_hat = torch.max(y_hat, dim=1)
-        val_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
-        val_acc = torch.tensor(val_acc)
+    def training_epoch_end(self, outputs):
+        avg_loss = torch.stack([x['loss'] for x in outputs]).mean().to(torch.double)
+        avg_loss = avg_loss.cpu().detach().numpy() + 0
+        results = self.model.evaluate(eval_dataloader=self.train_gen, confusion=Evaluator(k=self.params['num_classes']), part='train')
+        if self.current_epoch > 0: self.log_dict(results)
+            # self.logger.experiment.log_metric(key=key,
+            #                                   value=value,
+            #                                   step=self.current_epoch,
+            #                                   run_id=self.logger.run_id)
 
+        # for the constraint match, we want to collect some stats on the pseudo-predictions for the unlabelled data
+        if self.params['constraintmatch'] and (self.current_epoch + 1) % 2 and self.params['plot'] == 1:
+            self.model.pl_stats(cm_train_gen=self.cm_train_gen,
+                                threshold=self.params['threshold'],
+                                logger=self.logger,
+                                step=self.current_epoch)
 
-        return {'val_loss': loss, 'val_acc': val_acc}
+        # here comes the pseudo labeling logic!
+        # we need some logic after which num_epochs we want to have the pseudo_labels updated
+        if self.params['pseudo_label']:
+            if (self.current_epoch + 1) % self.params['pl_update'] == 0:
+                self.train_data = self.model.pseudo_label(train_data=self.train_data, num_plabels=self.params['num_plabels'])
+                # reset model after each pseudo label update
+                self.model.reset_model()
+        self.model.epoch = self.current_epoch
+
+    def validation_step(self, batch, batch_idx):
+        # batch as output by collate func in the data loader
+        outs = self.forward(batch=batch)
+        loss = self.model.loss_function(outs, batch, **self.params)
+
+        return loss
 
     def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        avg_val_acc = torch.stack([x['val_acc'] for x in outputs]).mean()
+        avg_loss = torch.stack([x['loss'] for x in outputs]).mean().to(torch.double)
+        avg_loss = avg_loss.cpu().detach().numpy() + 0
 
-        self.log("val_loss", avg_loss, prog_bar=True)
-        self.log_dict({'avg_val_acc': avg_val_acc})
-        return avg_loss
+        # validation performance
+        results = self.model.evaluate(eval_dataloader=self.val_gen,
+                                      confusion=Evaluator(k=self.params['num_classes']),
+                                      part='val',
+                                      logger=self.logger,
+                                      true_k=10 if self.params['dataset'] != 'cifar20' else 20)
+        # skip epoch 0 as this is the sanity check of pt lightning
+        if self.current_epoch > 0: self.log_dict(dictionary=results)
 
-    def test_step(self, batch, batch_nb):
-        input_ids = batch['input_ids']
-        label = batch['label']
-        attention_mask = batch['attention_mask']
-        #token_type_ids = batch['token_type_ids']
-        y_hat = self(input_ids, attention_mask, label)
-        
-        # loss
-        loss_fct = torch.nn.CrossEntropyLoss()
-        loss = loss_fct(y_hat.view(-1, self.params['num_classes']), label.view(-1))
-        
-        a, y_hat = torch.max(y_hat, dim=1)
-        test_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
-        
-        return {'test_loss':loss, 'test_acc': torch.tensor(test_acc)}
-    
+        # self._save_model_mlflow()
+
+        return {'avg_val_loss': avg_loss}
+
+    def test_step(self, batch, batch_idx):
+        outs = self.forward(batch=batch)
+        loss = self.model.loss_function(outs, batch, **self.params)
+
+        return loss
+
     def test_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-        avg_test_acc = torch.stack([x['test_acc'] for x in outputs]).mean()
-        self.log('test_loss', avg_loss)
-        self.log('test_acc', avg_test_acc)
-        # tensorboard_logs = {'avg_test_loss': avg_loss, 'avg_test_acc': avg_test_acc}
+        avg_loss = torch.stack([x['loss'] for x in outputs]).mean().to(torch.double)
+        avg_loss = avg_loss.cpu().detach().numpy() + 0
+
+        scores = self.model.evaluate(eval_dataloader=self.test_dataloader(),
+                                     confusion=Evaluator(k=self.params['num_classes']),
+                                     part='test', 
+                                     logger=self.logger,
+                                     true_k=10 if self.params['dataset'] != 'cifar20' else 20)
+
+        for key, value in zip(scores.keys(), scores.values()): self.log(name=key, value=value)
 
         self._save_model_mlflow()
 
@@ -171,67 +174,48 @@ class Experiment(pl.LightningModule):
         self.logger.experiment.log_param(key='experiment_name',
                                          value=self.experiment_name,
                                          run_id=self.logger.run_id)
+        # log #constraints after TC/ CE
+        self.logger.experiment.log_param(key=f"train_constraints_full",
+                                          value=len(self.train_data.c),
+                                          run_id=self.logger.run_id)
+        self.logger.experiment.log_param(key=f"train_cl_ratio",
+                                          value=round(np.unique(self.train_data.c['c_ij'], return_counts=True)[1][0] / sum(np.unique(self.train_data.c['c_ij'], return_counts=True)[1]), 4),
+                                          run_id=self.logger.run_id)
+        self.logger.experiment.log_param(key=f"train_ml_ratio",
+                                          value=round(np.unique(self.train_data.c['c_ij'], return_counts=True)[1][1] / sum(np.unique(self.train_data.c['c_ij'], return_counts=True)[1]), 4),
+                                          run_id=self.logger.run_id)
+        self.logger.experiment.log_param(key='k', value=self.params['k'], run_id=self.logger.run_id)
 
-        return {'avg_test_acc': avg_test_acc}
-
-    def setup(self, stage=None) -> None:
-        if stage != "fit":
-            return
-        # Get dataloader by calling it - train_dataloader() is called after setup() by default
-        train_loader = self.train_dataloader()
-
-        # Calculate total steps
-        tb_size = self.params['batch_size'] #* max(1, self.trainer.gpus)
-        ab_size = self.trainer.accumulate_grad_batches * float(self.trainer.max_epochs)
-        self.total_steps = (len(train_loader.dataset) // tb_size) // ab_size
 
     def configure_optimizers(self):
-        """Prepare optimizer and schedule (linear warmup and decay)"""
-        model = self.model
-        no_decay = ["bias", "LayerNorm.weight"]
-        optimizer_grouped_parameters = [
-            {
-                "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
-                "weight_decay": self.params['weight_decay'],
-            },
-            {
-                "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
-                "weight_decay": 0.0,
-            },
-        ]
-        optimizer = AdamW(optimizer_grouped_parameters, lr=self.params['learning_rate'])
-
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=2e-5, total_steps=2000)
-
-        self.sched = scheduler
-        self.optim = optimizer
-
-        # scheduler = get_linear_schedule_with_warmup(
-        #     optimizer,
-        #     num_warmup_steps=self.params['warmup_steps'],
-        #     # num_warmup_steps=2,
-        #     num_training_steps=self.total_steps,
-        # )
-        # scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
-        return [optimizer], [scheduler]
+        optimizer = optim.SGD(params=self.model.parameters(),
+                              lr=self.params['learning_rate'],
+                              weight_decay=self.params['weight_decay'],
+                              momentum=self.params['momentum'])
     
-    def on_batch_end(self):
-        #for group in self.optim.param_groups:
-        #    print('learning rate', group['lr'])
-        # This is needed to use the One Cycle learning rate that needs the learning rate to change after every batch
-        # Without this, the learning rate will only change after every epoch
-        if self.sched is not None:
-            self.sched.step()
-    
-    def on_epoch_end(self):
-        if self.sched is not None:
-            self.sched.step()
-    
+        if self.params['scheduler'] == 'cosine':
+            # cosine scheduler as in Sohn 2020
+            def lr_lambda(step: int) -> float:
+                total_training_steps = int((self.trainer_params['max_epochs']) * (self.params['num_constraints'] / self.params['batch_size']))
+                #total_training_steps = int(self.trainer_params['max_epochs'])
+                factor = math.cos(7./ 16. * math.pi * (float(step) / float(max(1, total_training_steps))))
+                # make sure it does not go < 0 due to underestimation of the total training steps
+                #TODO: this is an ugly fix due to pls weird optimization schedule
+                return max(factor, 0.000001)
+
+            scheduler = LambdaLR(optimizer=optimizer, lr_lambda=lr_lambda)
+            scheduler_config = {'scheduler': scheduler,
+                                'interval': 'step'}
+
+            return {'optimizer': optimizer, 'lr_scheduler': scheduler_config} 
+        else:
+            return {'optimizer': optimizer}
+
     def train_dataloader(self):
 
         self.train_gen = DataLoader(dataset=self.train_data,
                                     batch_size=self.params['batch_size'],
-                                    # collate_fn=constrained_collate_fn,
+                                    collate_fn=constrained_collate_fn,
                                     num_workers=self.params['num_workers'],
                                     shuffle=True)
 
@@ -271,7 +255,7 @@ class Experiment(pl.LightningModule):
 
         self.val_gen = DataLoader(dataset=self.val_data,
                                   batch_size=self.params['batch_size'],
-                                #   collate_fn=supervised_collate_fn,
+                                  collate_fn=supervised_collate_fn,
                                   num_workers=self.params['num_workers'],
                                   shuffle=True)
 
@@ -281,12 +265,11 @@ class Experiment(pl.LightningModule):
 
         test_gen = DataLoader(dataset=self.test_data,
                               batch_size=self.params['batch_size'],
-                            #   collate_fn=supervised_collate_fn,
+                              collate_fn=supervised_collate_fn,
                               num_workers=self.params['num_workers'],
                               shuffle=True)
 
         return test_gen
-
 
 def save_dict_as_yaml_mlflow(data: dict, logger: MLFlowLogger, filename: str = 'config.yaml'): 
     """Store any dict in mlflow as an .yaml artifact

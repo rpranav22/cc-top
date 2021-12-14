@@ -22,7 +22,7 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/newsgroup_bertopic.yaml')
+                        default='configs/newsgroup_supervised.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')                        
     parser.add_argument('--batch_size', type=int, default=None,
@@ -76,7 +76,7 @@ def run_experiment(args):
     else:
         print("Using LightningModule")
 
-        experiment = Experiment(model.model,
+        experiment = Experiment(model,
                                 params=config['exp_params'],
                                 log_params=config['logging_params'],
                                 trainer_params=config['trainer_params'],
@@ -87,15 +87,16 @@ def run_experiment(args):
         # train_data = get_data(root='./data', params=params, log_params=None, part='train')
         # val_data = get_data(root='./data', params=params, log_params=None, part='val')
 
-        print(len(experiment.train_data), type(experiment.train_data.x))
-
+        print("Primer: ", len(experiment.train_data), type(experiment.train_data.x), len(experiment.train_data.c))
+        print(f"model: {type(experiment.model)}")
         # model.run_lda(train_data.x)
 
         
         trainer = Trainer(
                         reload_dataloaders_every_epoch=False,
                         min_epochs=params['epochs'],
-                        log_every_n_steps=10,
+                        log_every_n_steps=100,
+                        gpus=1,
                         checkpoint_callback=True,
                         logger=mlflow_logger,
                         check_val_every_n_epoch=1,
@@ -104,6 +105,7 @@ def run_experiment(args):
         )
 
         trainer.fit(experiment)
+        trainer.test()
 
     print("I have reached till here")
 

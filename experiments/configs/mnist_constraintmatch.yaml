@@ -1,5 +1,5 @@
 model_params:
-    model: 'constraintmatch'
+    model: 'ccm'
     loss: KCL
     architecture:
         arch: 'lenet'

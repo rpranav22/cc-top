@@ -7,6 +7,7 @@ class LeNet(nn.Module):
 
     def __init__(self, out_dim=10, in_channel=1, img_sz = 28, **kwargs):
         super(LeNet, self).__init__()
+        print("inside lenet: ", kwargs)
         feat_map_sz = img_sz//4
         self.n_feat = 50 * feat_map_sz * feat_map_sz
 

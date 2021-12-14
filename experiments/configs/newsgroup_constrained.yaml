@@ -1,11 +1,5 @@
 model_params:
     model: 'supervised_plm'
-    loss: None
-    architecture:
-        arch: bert_classifier
-        base_model: 'bert-base-uncased'
-        num_labels: 20
-        
 
 exp_params:
     dataset: 'newsgroups'
@@ -19,14 +13,12 @@ exp_params:
     learning_rate: 0.00002
     adam_epsilon: 0.00000001
     weight_decay: 0.01
-    warmup_steps: 0
-    num_constraints: 10000
-    clean_text: False
-    remove_stopwords: False
+    warmup_steps: 500
+    num_constraints: 2
     k: NULL
     
 trainer_params:
-    max_epochs: 2
+    max_epochs: 10
     
 
 logging_params:
