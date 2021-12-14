@@ -15,6 +15,8 @@ from sscc.architectures.resnet18 import resnet18, ClusteringModel
 from sscc.architectures.wideresnet import WideResNet
 from sscc.architectures.resnet18_small import ResNet18
 from sscc.models.supervised_plm import SupervisedPLM
+from sscc.architectures.bertsequenceclassification import BertForClassification
+
 
 models = {'supervised': Supervised,
           'scm': SCM,
@@ -28,15 +30,13 @@ architectures = {'lenet': LeNet,
                  'vgg': VGG,
                  'resnet': ResNet,
                  'wideresnet': WideResNet, 
-                 'resnet18_small': ResNet18}
+                 'resnet18_small': ResNet18,
+                 'bert_classifier': BertForClassification}
 
 def parse_architecture_config(config):
     arch_params = config.get('model_params').get('architecture')
     #TODO: integrate the gansbeke resnet18 more slick
-    if arch_params['arch'] == 'resnet18':
-        architecture = get_scan_resnet(dataset=config['exp_params']['dataset'], **arch_params)
-    else:
-        architecture = architectures[arch_params.get('arch')](**arch_params)
+    architecture = architectures[arch_params.get('arch')](**arch_params)
 
     return architecture
 

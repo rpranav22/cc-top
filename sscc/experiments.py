@@ -85,48 +85,94 @@ class Experiment(pl.LightningModule):
                 print(f'Stored final model at {path}')
                 self.logger.experiment.log_artifact(local_path=path, run_id=self.logger.run_id)
 
-    def forward(self, **inputs):
-            return self.model(**inputs)
+    def forward(self, *input, **kwargs):
+            print(type(input))
+            return self.model(*input, **kwargs)
 
     def training_step(self, batch, batch_idx):
-        outputs = self(**batch)
-        loss = outputs[0]
-        return loss
+        # outputs = self(**batch)
+        # loss = outputs[0]
+        input_ids = batch['input_ids']
+        label = batch['label']
+        attention_mask = batch['attention_mask']
+        #token_type_ids = batch['token_type_ids']
+        # fwd
+        y_hat = self(input_ids, attention_mask, label)
+        
+        # loss
+        loss_fct = torch.nn.CrossEntropyLoss()
+        loss = loss_fct(y_hat.view(-1, self.params['num_classes']), label.view(-1))
+        #loss = F.cross_entropy(y_hat, label)
+        
+        # logs
+        # tensorboard_logs = {'train_loss': loss, 'learn_rate': self.optim.param_groups[0]['lr'] }
+        return {'loss': loss}
+
+
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
-        outputs = self(**batch)
-        val_loss, logits = outputs[:2]
 
-        if self.params['num_classes'] >= 1:
-            preds = torch.argmax(logits, axis=1)
-        elif self.params['num_classes'] == 1:
-            preds = logits.squeeze()
+        input_ids = batch['input_ids']
+        label = batch['label']
+        attention_mask = batch['attention_mask']
+        #token_type_ids = batch['token_type_ids'] 
+        # fwd
+        y_hat = self(input_ids, attention_mask, label)
+        
+        # loss
+        #loss = F.cross_entropy(y_hat, label)
+        loss_fct = torch.nn.CrossEntropyLoss()
+        loss = loss_fct(y_hat.view(-1, self.params['num_classes']), label.view(-1))
 
-        labels = batch["labels"]
+        # acc
+        a, y_hat = torch.max(y_hat, dim=1)
+        val_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
+        val_acc = torch.tensor(val_acc)
 
-        return {"loss": val_loss, "preds": preds, "labels": labels}
+
+        return {'val_loss': loss, 'val_acc': val_acc}
 
     def validation_epoch_end(self, outputs):
-        # if self.hparams.task_name == "mnli":
-        #     for i, output in enumerate(outputs):
-        #         # matched or mismatched
-        #         split = self.hparams.eval_splits[i].split("_")[-1]
-        #         preds = torch.cat([x["preds"] for x in output]).detach().cpu().numpy()
-        #         labels = torch.cat([x["labels"] for x in output]).detach().cpu().numpy()
-        #         loss = torch.stack([x["loss"] for x in output]).mean()
-        #         self.log(f"val_loss_{split}", loss, prog_bar=True)
-        #         split_metrics = {
-        #             f"{k}_{split}": v for k, v in self.metric.compute(predictions=preds, references=labels).items()
-        #         }
-        #         self.log_dict(split_metrics, prog_bar=True)
-        #     return loss
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        avg_val_acc = torch.stack([x['val_acc'] for x in outputs]).mean()
 
-        preds = torch.cat([x["preds"] for x in outputs]).detach().cpu().numpy()
-        labels = torch.cat([x["labels"] for x in outputs]).detach().cpu().numpy()
-        loss = torch.stack([x["loss"] for x in outputs]).mean()
-        self.log("val_loss", loss, prog_bar=True)
-        self.log_dict(self.metric(preds, labels))
-        return loss
+        self.log("val_loss", avg_loss, prog_bar=True)
+        self.log_dict({'avg_val_acc': avg_val_acc})
+        return avg_loss
+
+    def test_step(self, batch, batch_nb):
+        input_ids = batch['input_ids']
+        label = batch['label']
+        attention_mask = batch['attention_mask']
+        #token_type_ids = batch['token_type_ids']
+        y_hat = self(input_ids, attention_mask, label)
+        
+        # loss
+        loss_fct = torch.nn.CrossEntropyLoss()
+        loss = loss_fct(y_hat.view(-1, self.params['num_classes']), label.view(-1))
+        
+        a, y_hat = torch.max(y_hat, dim=1)
+        test_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
+        
+        return {'test_loss':loss, 'test_acc': torch.tensor(test_acc)}
+    
+    def test_epoch_end(self, outputs):
+        avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
+        avg_test_acc = torch.stack([x['test_acc'] for x in outputs]).mean()
+        self.log('test_loss', avg_loss)
+        self.log('test_acc', avg_test_acc)
+        # tensorboard_logs = {'avg_test_loss': avg_loss, 'avg_test_acc': avg_test_acc}
+
+        self._save_model_mlflow()
+
+        self.logger.experiment.log_param(key='run_name',
+                                         value=self.run_name,
+                                         run_id=self.logger.run_id)
+        self.logger.experiment.log_param(key='experiment_name',
+                                         value=self.experiment_name,
+                                         run_id=self.logger.run_id)
+
+        return {'avg_test_acc': avg_test_acc}
 
     def setup(self, stage=None) -> None:
         if stage != "fit":
@@ -155,20 +201,37 @@ class Experiment(pl.LightningModule):
         ]
         optimizer = AdamW(optimizer_grouped_parameters, lr=self.params['learning_rate'])
 
-        scheduler = get_linear_schedule_with_warmup(
-            optimizer,
-            num_warmup_steps=self.params['warmup_steps'],
-            # num_warmup_steps=2,
-            num_training_steps=self.total_steps,
-        )
-        scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=2e-5, total_steps=2000)
+
+        self.sched = scheduler
+        self.optim = optimizer
+
+        # scheduler = get_linear_schedule_with_warmup(
+        #     optimizer,
+        #     num_warmup_steps=self.params['warmup_steps'],
+        #     # num_warmup_steps=2,
+        #     num_training_steps=self.total_steps,
+        # )
+        # scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
         return [optimizer], [scheduler]
+    
+    def on_batch_end(self):
+        #for group in self.optim.param_groups:
+        #    print('learning rate', group['lr'])
+        # This is needed to use the One Cycle learning rate that needs the learning rate to change after every batch
+        # Without this, the learning rate will only change after every epoch
+        if self.sched is not None:
+            self.sched.step()
+    
+    def on_epoch_end(self):
+        if self.sched is not None:
+            self.sched.step()
     
     def train_dataloader(self):
 
         self.train_gen = DataLoader(dataset=self.train_data,
                                     batch_size=self.params['batch_size'],
-                                    collate_fn=constrained_collate_fn,
+                                    # collate_fn=constrained_collate_fn,
                                     num_workers=self.params['num_workers'],
                                     shuffle=True)
 
