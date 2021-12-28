@@ -18,10 +18,10 @@ class BertForClassification(nn.Module):
         # nn.init.xavier_normal_(self.classifier.weight)
 
     def forward(self, input_ids, attention_mask, labels):
-        print(f"bas class input ids: {type(input_ids)} and the shape is {input_ids.shape}")
+        # print(f"bas class input ids: {type(input_ids)} and the shape is {input_ids.shape}")
         outputs = self.bert(input_ids=input_ids, \
                          attention_mask=attention_mask)
 
         
-        print(f"this is in base class forward and output is of type {type(outputs)} and shape {len(outputs)}")
+        # print(f"this is in base class forward and output is of type {type(outputs)} and shape {len(outputs)}")
         return outputs

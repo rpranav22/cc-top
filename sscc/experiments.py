@@ -265,6 +265,14 @@ class Experiment(pl.LightningModule):
                                           shuffle=True)
 
             return {'supervised_train': self.train_gen, 'cm_train': self.cm_train_gen}
+        elif self.params['constrained_clustering']:
+            print(f'_____constrained____ \n')
+            self.train_gen = DataLoader(dataset=self.train_data,
+                                    batch_size=self.params['batch_size'],
+                                    collate_fn=partial(constrained_collate_fn, params=self.params),
+                                    num_workers=self.params['num_workers'],
+                                    shuffle=True)
+            return self.train_gen
         else:
             return self.train_gen
 

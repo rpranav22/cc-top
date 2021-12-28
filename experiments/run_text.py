@@ -22,7 +22,7 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/newsgroup_supervised.yaml')
+                        default='configs/newsgroup_constrained.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')                        
     parser.add_argument('--batch_size', type=int, default=None,
@@ -96,7 +96,7 @@ def run_experiment(args):
                         reload_dataloaders_every_epoch=False,
                         min_epochs=params['epochs'],
                         log_every_n_steps=100,
-                        gpus=1,
+                        # gpus=1,
                         checkpoint_callback=True,
                         logger=mlflow_logger,
                         check_val_every_n_epoch=1,

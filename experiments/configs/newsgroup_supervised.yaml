@@ -16,12 +16,13 @@ exp_params:
     num_classes: 20
     is_tensor: True
     constraintmatch: False
+    constrained_clustering: False
     num_workers: 0
     learning_rate: 0.00002
     adam_epsilon: 0.00000001
     weight_decay: 0.01
     warmup_steps: 0
-    num_constraints: 10000
+    num_constraints: 20000
     clean_text: False
     remove_stopwords: False
     k: NULL

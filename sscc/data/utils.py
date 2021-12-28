@@ -17,7 +17,31 @@ from sscc.data.newsgroups import newsgroups
 
 tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased', do_lower_case=True)
 
-def constrained_collate_fn(batch, data_collate=default_collate):
+# def constrained_collate_fn(batch, data_collate=default_collate):
+#     """
+#     Collates the constrained samples only
+#     one sample of a batch consists of 5 elements: 
+#         1) xi
+#         2) xj
+#         3) yi
+#         4) yj
+#         5) cij
+#     """
+#     # from timeit import default_timer as timer; start = timer()
+#     transposed_data = list(zip(*batch))
+#     data = [data_collate(b) for b in transposed_data]
+
+#     # stack images x_i and x_j
+#     images = torch.cat((data[0], data[1]), dim=0)
+#     # stack labels y_i and y_j
+#     labels = torch.cat((data[2], data[3]), dim=0)
+#     constraints = data[4]
+#     # rearrange pre-specified constraints to make them trainable!
+#     train_target, eval_target = prepare_task_target(labels, constraints)
+#     # print(f'constrained_collate_fn: {timer() - start}')
+#     return {'images': images.double(), 'train_target': train_target, 'eval_target': eval_target}
+
+def constrained_collate_fn(batch, params):
     """
     Collates the constrained samples only
     one sample of a batch consists of 5 elements: 
@@ -29,17 +53,59 @@ def constrained_collate_fn(batch, data_collate=default_collate):
     """
     # from timeit import default_timer as timer; start = timer()
     transposed_data = list(zip(*batch))
-    data = [data_collate(b) for b in transposed_data]
+    data = [default_collate(b) for b in transposed_data]
+    print(f"\n\n\n\nprinting from inside the constrained collate fn \n\n\n {len(data), type(data)}, and params {params}\n\n")
+    
+    x_i = list(data[0])
+    x_j = list(data[1])
+    y_i = data[2].type(torch.int32)
+    y_j = data[3].type(torch.int32)
+    c_ij = data[4]
 
-    # stack images x_i and x_j
-    images = torch.cat((data[0], data[1]), dim=0)
-    # stack labels y_i and y_j
-    labels = torch.cat((data[2], data[3]), dim=0)
-    constraints = data[4]
+    # notes = list(zip(x_i, x_j))
+    targets = torch.cat((y_i, y_j), dim=0)
+    # target_j = torch.tensor(self.y[j])
+    print( y_i, y_j, c_ij, targets.shape)
+    # target = target_i.transpose()
+
+    encoding_xi = tokenizer.batch_encode_plus(
+    x_i,
+    add_special_tokens=True,
+    max_length=params['max_length'],
+    return_token_type_ids=True,
+    truncation=True,
+    padding='max_length',
+    return_attention_mask=True,
+    return_tensors='pt',
+    )    
+
+    encoding_xj = tokenizer.batch_encode_plus(
+    x_j,
+    add_special_tokens=True,
+    max_length=params['max_length'],
+    return_token_type_ids=True,
+    truncation=True,
+    padding='max_length',
+    return_attention_mask=True,
+    return_tensors='pt',
+    )   
+            
     # rearrange pre-specified constraints to make them trainable!
-    train_target, eval_target = prepare_task_target(labels, constraints)
-    # print(f'constrained_collate_fn: {timer() - start}')
-    return {'images': images.double(), 'train_target': train_target, 'eval_target': eval_target}
+    train_target, eval_target = prepare_task_target(targets, c_ij)
+    
+    stacked_input = torch.cat((encoding_xi['input_ids'], encoding_xj['input_ids']), dim=0)
+    stacked_attention = torch.cat((encoding_xi['attention_mask'], encoding_xj['attention_mask']), dim=0)
+    stacked_tokens = torch.cat((encoding_xi['token_type_ids'], encoding_xj['token_type_ids']), dim=0)
+    print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {targets.shape}, {encoding_xi['input_ids'].shape}, {stacked_input.shape }\n\n\n")
+
+    return {
+        #'text': note,
+        'label': torch.tensor(targets, dtype=torch.long),
+        'input_ids': (stacked_input),
+        'attention_mask': (stacked_attention),
+        'token_type_ids': (stacked_tokens),
+        'train_target': train_target
+    }
 
 def supervised_collate_fn(batch, params):
     """
@@ -62,7 +128,7 @@ def supervised_collate_fn(batch, params):
     return_attention_mask=True,
     return_tensors='pt',
     )    
-    print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {targets.shape}, {encoding['input_ids'].shape }\n\n\n")
+    print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {targets}, {encoding['input_ids'].shape }\n\n\n")
 
     return {
         #'text': note,
@@ -190,6 +256,7 @@ def get_data(root, params, log_params, part):
                        num_constraints=params['num_constraints'],
                        is_tensor=params['is_tensor'],
                        clean_text=params['clean_text'],
+                       constrained_clustering=params['constrained_clustering'],
                        remove_stopwords=['remove_stopwords'],
                        max_length = params['max_length'],
                        k=params['k'])

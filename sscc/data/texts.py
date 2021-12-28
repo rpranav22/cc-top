@@ -23,6 +23,7 @@ class TextDataset(data.Dataset):
                  num_constraints: int,
                  k: int,
                  max_length: int,
+                 constrained_clustering: bool=False,
                  seed: int=1337,
                  test_size: float=0.2,
                  clean_text: bool = True, 
@@ -53,6 +54,7 @@ class TextDataset(data.Dataset):
         self.val_size = val_size
         self.max_length = max_length
         self.clean_text = clean_text
+        self.constrained_clustering = constrained_clustering
         self.remove_stopwords = remove_stopwords
         self.k = k
         self.num_constraints = num_constraints
@@ -87,36 +89,16 @@ class TextDataset(data.Dataset):
         if torch.is_tensor(index):
             index = index.tolist()
 
-        if self.part == 'trains':
+        if self.part == 'train' and self.constrained_clustering:
+            # print(f'index: {index}\n {self.c.info()}')
             constraint_info = self.c.iloc[index, :]
             i, j = constraint_info['i'], constraint_info['j']
             c_ij = constraint_info['c_ij']
             y_i, y_j = constraint_info['y_i'], constraint_info['y_j']
 
-            notes = [str(self.x[i]), str(self.x[j])]
-            target_i = torch.tensor([y_i, y_j])
-            # target_j = torch.tensor(self.y[j])
-            print(self.y[i], self.y[j], y_i, y_j, c_ij, target_i.shape)
-            # target = target_i.transpose()
+            assert y_i == self.y[i]
 
-            encoding = self.tokenizer.batch_encode_plus(
-            notes,
-            add_special_tokens=True,
-            max_length=self.max_length,
-            return_token_type_ids=True,
-            truncation=True,
-            padding='max_length',
-            return_attention_mask=True,
-            return_tensors='pt',
-            )    
-            return {
-                #'text': note,
-                'label': target_i,
-                'input_ids': (encoding['input_ids']).flatten(),
-                'attention_mask': (encoding['attention_mask']).flatten(),
-                'token_type_ids': (encoding['token_type_ids']).flatten()
-            }
-
+            return self.x[i], self.x[j], y_i, y_j, c_ij
 
             
         else:
