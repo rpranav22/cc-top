@@ -22,8 +22,8 @@ class TextDataset(data.Dataset):
                  val_size: float,
                  num_constraints: int,
                  k: int,
+                 max_length: int,
                  seed: int=1337,
-                 max_length: int=512,
                  test_size: float=0.2,
                  clean_text: bool = True, 
                  remove_stopwords: bool = True,
@@ -86,26 +86,42 @@ class TextDataset(data.Dataset):
         """
         if torch.is_tensor(index):
             index = index.tolist()
-        note = str(self.x[index])
-        target = self.y[index]
-        
-        encoding = self.tokenizer.encode_plus(
-          note,
-          add_special_tokens=True,
-          max_length=self.max_length,
-          return_token_type_ids=True,
-          truncation=True,
-          padding='max_length',
-          return_attention_mask=True,
-          return_tensors='pt',
-        )    
-        return {
-            #'text': note,
-            'label': torch.tensor(target, dtype=torch.long),
-            'input_ids': (encoding['input_ids']).flatten(),
-            'attention_mask': (encoding['attention_mask']).flatten(),
-            'token_type_ids': (encoding['token_type_ids']).flatten()
-        }
+
+        if self.part == 'trains':
+            constraint_info = self.c.iloc[index, :]
+            i, j = constraint_info['i'], constraint_info['j']
+            c_ij = constraint_info['c_ij']
+            y_i, y_j = constraint_info['y_i'], constraint_info['y_j']
+
+            notes = [str(self.x[i]), str(self.x[j])]
+            target_i = torch.tensor([y_i, y_j])
+            # target_j = torch.tensor(self.y[j])
+            print(self.y[i], self.y[j], y_i, y_j, c_ij, target_i.shape)
+            # target = target_i.transpose()
+
+            encoding = self.tokenizer.batch_encode_plus(
+            notes,
+            add_special_tokens=True,
+            max_length=self.max_length,
+            return_token_type_ids=True,
+            truncation=True,
+            padding='max_length',
+            return_attention_mask=True,
+            return_tensors='pt',
+            )    
+            return {
+                #'text': note,
+                'label': target_i,
+                'input_ids': (encoding['input_ids']).flatten(),
+                'attention_mask': (encoding['attention_mask']).flatten(),
+                'token_type_ids': (encoding['token_type_ids']).flatten()
+            }
+
+
+            
+        else:
+            return self.x[index], self.y[index]
+            
         
 
     def load_dataset(self, part='train', clean_text=True, remove_stopwords=True, is_tensor=True):
@@ -284,7 +300,7 @@ class TextDataset(data.Dataset):
                     cl_ind1.append(tmp1)
                     cl_ind2.append(tmp2)
 
-                    num_constraints -= 1
+                num_constraints -= 1
 
         ml_ind1, ml_ind2, cl_ind1, cl_ind2 = np.array(ml_ind1), np.array(ml_ind2), np.array(cl_ind1), np.array(cl_ind2)
         # apply transitivity closure of ML and entailment of CL

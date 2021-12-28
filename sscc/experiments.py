@@ -1,3 +1,4 @@
+from functools import partial
 import pandas as pd
 import numpy as np
 import torch
@@ -231,7 +232,7 @@ class Experiment(pl.LightningModule):
 
         self.train_gen = DataLoader(dataset=self.train_data,
                                     batch_size=self.params['batch_size'],
-                                    # collate_fn=constrained_collate_fn,
+                                    collate_fn=partial(supervised_collate_fn, params=self.params),
                                     num_workers=self.params['num_workers'],
                                     shuffle=True)
 
@@ -271,7 +272,7 @@ class Experiment(pl.LightningModule):
 
         self.val_gen = DataLoader(dataset=self.val_data,
                                   batch_size=self.params['batch_size'],
-                                #   collate_fn=supervised_collate_fn,
+                                  collate_fn=partial(supervised_collate_fn, params=self.params),
                                   num_workers=self.params['num_workers'],
                                   shuffle=True)
 
@@ -281,7 +282,7 @@ class Experiment(pl.LightningModule):
 
         test_gen = DataLoader(dataset=self.test_data,
                               batch_size=self.params['batch_size'],
-                            #   collate_fn=supervised_collate_fn,
+                              collate_fn=partial(supervised_collate_fn, params=self.params),
                               num_workers=self.params['num_workers'],
                               shuffle=True)
 

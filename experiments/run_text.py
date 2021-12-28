@@ -87,7 +87,7 @@ def run_experiment(args):
         # train_data = get_data(root='./data', params=params, log_params=None, part='train')
         # val_data = get_data(root='./data', params=params, log_params=None, part='val')
 
-        print("Primer: ", len(experiment.train_data), type(experiment.train_data.x), len(experiment.train_data.c))
+        print("Primer: ", len(experiment.train_data), type(experiment.train_data.x), len(experiment.train_data.c), len(experiment.test_data.y), len(experiment.test_data.c), len(experiment.val_data.y), len(experiment.val_data.c))
         print(f"model: {type(experiment.model)}")
         # model.run_lda(train_data.x)
 

@@ -6,6 +6,7 @@ from sklearn.metrics import accuracy_score
 
 from torch.utils.data.dataloader import default_collate
 from transformers.file_utils import is_tf_available, is_torch_available
+from transformers import BertTokenizerFast
 from sscc.data.cifar10 import CIFAR10, transforms_cifar10_train, transforms_cifar10_test
 from sscc.data.cifar20 import CIFAR20
 from sscc.data.mnist import MNIST, transforms_mnist_train, transforms_mnist_test
@@ -13,6 +14,8 @@ from sscc.data.fashionmnist import FASHIONMNIST, transforms_fmnist_train, transf
 from sscc.data.yaleb import YaleB
 from sscc.data.yalebextend import YaleBExt, transforms_yaleb_train
 from sscc.data.newsgroups import newsgroups
+
+tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased', do_lower_case=True)
 
 def constrained_collate_fn(batch, data_collate=default_collate):
     """
@@ -38,16 +41,36 @@ def constrained_collate_fn(batch, data_collate=default_collate):
     # print(f'constrained_collate_fn: {timer() - start}')
     return {'images': images.double(), 'train_target': train_target, 'eval_target': eval_target}
 
-def supervised_collate_fn(batch, data_collate=default_collate):
+def supervised_collate_fn(batch, params):
     """
     Collates supervised, labeled samples
     """
     transposed_data = list(zip(*batch))
-    data = [data_collate(b) for b in transposed_data]
+    data = [default_collate(b) for b in transposed_data]
+    print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {len(data), type(data)}, and params {params}\n\n")
 
-    train_target, eval_target = prepare_supervised_task_target(target=data[1])
+    notes = list(data[0])
+    targets = data[1]
+    
+    encoding = tokenizer.batch_encode_plus(
+    notes,
+    add_special_tokens=True,
+    max_length=params['max_length'],
+    return_token_type_ids=True,
+    truncation=True,
+    padding='max_length',
+    return_attention_mask=True,
+    return_tensors='pt',
+    )    
+    print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {targets.shape}, {encoding['input_ids'].shape }\n\n\n")
 
-    return {'images': data[0].double(), 'train_target': train_target, 'eval_target': eval_target}
+    return {
+        #'text': note,
+        'label': torch.tensor(targets, dtype=torch.long),
+        'input_ids': (encoding['input_ids']),
+        'attention_mask': (encoding['attention_mask']),
+        'token_type_ids': (encoding['token_type_ids'])
+    }
 
 #TODO: come up with a collate logic for ConstraintMatch
 def constraint_match_collate_fn(batch, data_collate=default_collate):
@@ -168,6 +191,7 @@ def get_data(root, params, log_params, part):
                        is_tensor=params['is_tensor'],
                        clean_text=params['clean_text'],
                        remove_stopwords=['remove_stopwords'],
+                       max_length = params['max_length'],
                        k=params['k'])
     elif params['dataset'] == 'cifar20':
         data = CIFAR20(root=root,

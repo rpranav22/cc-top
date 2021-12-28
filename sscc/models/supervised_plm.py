@@ -15,25 +15,33 @@ class SupervisedPLM(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = model.to(self.device)
 
-    
-    # def forward(self, batch, **kwargs):
-    #     """
-    #     """
-    #     # train_target = pairwise constraints;
-    #     # len(train_target) = batch_size**2
-    #     # eval_target = actual labeles used for evaluation
-        
-    #     #need to modify collate function for this to work 
-    #     # images = batch['texts'].to(self.device)
+        self.pre_classifier = nn.Linear(self.model.bert.config.hidden_size, self.model.bert.config.hidden_size)
+        self.classifier = nn.Linear(self.model.bert.config.hidden_size, 20)
+        self.dropout = nn.Dropout(self.model.bert.config.hidden_dropout_prob)
+        self.relu =  nn.ReLU()
 
-    #     outputs = self.model(batch)
-
-    #     # out = F.softmax(outputs, dim=1)
-    #     return outputs
 
     def forward(self, *input, **kwargs):
-            # print(type(input))
-            return self.model(*input, **kwargs)
+            print("This is in supervised model", type(input), type(kwargs), kwargs.keys())
+            print(f"this is in supervised model class forward and output is of type {type(input)} and shape {len(input)}")
+
+            outputs = self.model(*input, **kwargs)
+            
+            hidden_state = outputs[0]  # (bs, seq_len, dim)
+            print(f"last hidden state classifier {hidden_state.shape}")
+            pooled_output = hidden_state[:, 0]  # (bs, dim)
+            pooled_output = self.pre_classifier(pooled_output)  # (bs, dim)
+            pooled_output = self.relu(pooled_output)  # (bs, dim)
+            pooled_output = self.dropout(pooled_output)  # (bs, dim)
+            print(f"before classifier {pooled_output.shape}")
+            logits = self.classifier(pooled_output)  # (bs, dim)
+
+            print(f"same place but what type {type(logits)} and shape {logits.shape} are the logits here :{logits[0]}")
+
+            softie = F.softmax(logits, dim=1)
+            print(f"same place shape {softie.shape} and the tensor softie itself {softie[0]}")
+
+            return logits
     
 
     
