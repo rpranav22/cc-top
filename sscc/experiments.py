@@ -87,7 +87,7 @@ class Experiment(pl.LightningModule):
                 self.logger.experiment.log_artifact(local_path=path, run_id=self.logger.run_id)
 
     def forward(self, *input, **kwargs):
-            print(type(input))
+            # print(type(input))
             return self.model(*input, **kwargs)
 
     def training_step(self, batch, batch_idx):
@@ -101,14 +101,29 @@ class Experiment(pl.LightningModule):
         y_hat = self(input_ids, attention_mask, label)
         
         # loss
-        loss_fct = torch.nn.CrossEntropyLoss()
-        loss = loss_fct(y_hat.view(-1, self.params['num_classes']), label.view(-1))
+        loss = self.model.loss_function(out=y_hat, batch=batch, **self.params)
+
+        for key, value in loss.items(): self.log(name=f"trainr_{key}", value=value, prog_bar=True)
+
+        self.log(name='train_step', value=self.train_step)
+        self.train_step += 1
+
+
+
+
+        # loss_fct = torch.nn.CrossEntropyLoss()
+        # loss = loss_fct(y_hat.view(-1, self.params['num_classes']), label.view(-1))
         #loss = F.cross_entropy(y_hat, label)
         
         # logs
         # tensorboard_logs = {'train_loss': loss, 'learn_rate': self.optim.param_groups[0]['lr'] }
-        return {'loss': loss}
+        return loss
 
+    def training_epoch_end(self, outputs):
+        avg_loss = torch.stack([x['loss'] for x in outputs]).mean().to(torch.double)
+        avg_loss = avg_loss.detach()
+        results = self.model.evaluate(eval_dataloader=self.train_gen, confusion=Evaluator(k=self.params['num_classes']), part='train')
+        if self.current_epoch > 0: self.log_dict(results)
 
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
@@ -121,25 +136,44 @@ class Experiment(pl.LightningModule):
         y_hat = self(input_ids, attention_mask, label)
         
         # loss
+        loss = self.model.loss_function(y_hat, batch, **self.params)
+
+
         #loss = F.cross_entropy(y_hat, label)
-        loss_fct = torch.nn.CrossEntropyLoss()
-        loss = loss_fct(y_hat.view(-1, self.params['num_classes']), label.view(-1))
+        # loss_fct = torch.nn.CrossEntropyLoss()
+        # loss = loss_fct(y_hat.view(-1, self.params['num_classes']), label.view(-1))
 
-        # acc
-        a, y_hat = torch.max(y_hat, dim=1)
-        val_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
-        val_acc = torch.tensor(val_acc)
+        # # acc
+        # a, y_hat = torch.max(y_hat, dim=1)
+        # val_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
+        # val_acc = torch.tensor(val_acc)
 
 
-        return {'val_loss': loss, 'val_acc': val_acc}
+        return {'val_loss': loss}   #, 'val_acc': val_acc}
 
     def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        avg_val_acc = torch.stack([x['val_acc'] for x in outputs]).mean()
+        avg_loss = torch.stack([x['val_loss']['loss'] for x in outputs]).mean().to(torch.double)
+        avg_loss = avg_loss.detach()
 
-        self.log("val_loss", avg_loss, prog_bar=True)
-        self.log_dict({'avg_val_acc': avg_val_acc})
-        return avg_loss
+        # validation performance
+        results = self.model.evaluate(eval_dataloader=self.val_gen,
+                                      confusion=Evaluator(k=self.params['num_classes']),
+                                      part='val',
+                                      logger=self.logger,
+                                      true_k=20)
+        # skip epoch 0 as this is the sanity check of pt lightning
+        if self.current_epoch > 0: self.log_dict(dictionary=results)
+
+        # self._save_model_mlflow()
+
+        return {'avg_val_loss': avg_loss}
+
+        # avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        # avg_val_acc = torch.stack([x['val_acc'] for x in outputs]).mean()
+
+        # self.log("val_loss", avg_loss, prog_bar=True)
+        # self.log_dict({'avg_val_acc': avg_val_acc})
+        # return avg_loss
 
     def test_step(self, batch, batch_nb):
         input_ids = batch['input_ids']
@@ -149,20 +183,30 @@ class Experiment(pl.LightningModule):
         y_hat = self(input_ids, attention_mask, label)
         
         # loss
-        loss_fct = torch.nn.CrossEntropyLoss()
-        loss = loss_fct(y_hat.view(-1, self.params['num_classes']), label.view(-1))
+        loss = self.model.loss_function(y_hat, batch, **self.params)
+
+        return loss
+
+
+        # loss_fct = torch.nn.CrossEntropyLoss()
+        # loss = loss_fct(y_hat.view(-1, self.params['num_classes']), label.view(-1))
         
-        a, y_hat = torch.max(y_hat, dim=1)
-        test_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
+        # a, y_hat = torch.max(y_hat, dim=1)
+        # test_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
         
-        return {'test_loss':loss, 'test_acc': torch.tensor(test_acc)}
+        # return {'test_loss':loss, 'test_acc': torch.tensor(test_acc)}
     
     def test_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-        avg_test_acc = torch.stack([x['test_acc'] for x in outputs]).mean()
-        self.log('test_loss', avg_loss)
-        self.log('test_acc', avg_test_acc)
-        # tensorboard_logs = {'avg_test_loss': avg_loss, 'avg_test_acc': avg_test_acc}
+        avg_loss = torch.stack([x['loss'] for x in outputs]).mean().to(torch.double)
+        avg_loss = avg_loss.detach()
+
+        scores = self.model.evaluate(eval_dataloader=self.test_dataloader(),
+                                     confusion=Evaluator(k=self.params['num_classes']),
+                                     part='test', 
+                                     logger=self.logger,
+                                     true_k=10 if self.params['dataset'] != 'cifar20' else 20)
+
+        for key, value in zip(scores.keys(), scores.values()): self.log(name=key, value=value)
 
         self._save_model_mlflow()
 
@@ -173,7 +217,23 @@ class Experiment(pl.LightningModule):
                                          value=self.experiment_name,
                                          run_id=self.logger.run_id)
 
-        return {'avg_test_acc': avg_test_acc}
+
+        # avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
+        # avg_test_acc = torch.stack([x['test_acc'] for x in outputs]).mean()
+        # self.log('test_loss', avg_loss)
+        # self.log('test_acc', avg_test_acc)
+        # # tensorboard_logs = {'avg_test_loss': avg_loss, 'avg_test_acc': avg_test_acc}
+
+        # self._save_model_mlflow()
+
+        # self.logger.experiment.log_param(key='run_name',
+        #                                  value=self.run_name,
+        #                                  run_id=self.logger.run_id)
+        # self.logger.experiment.log_param(key='experiment_name',
+        #                                  value=self.experiment_name,
+        #                                  run_id=self.logger.run_id)
+
+        # return {'avg_test_acc': avg_test_acc}
 
     def setup(self, stage=None) -> None:
         if stage != "fit":
@@ -189,83 +249,53 @@ class Experiment(pl.LightningModule):
     def configure_optimizers(self):
         """Prepare optimizer and schedule (linear warmup and decay)"""
         model = self.model
-        no_decay = ["bias", "LayerNorm.weight"]
-        optimizer_grouped_parameters = [
-            {
-                "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
-                "weight_decay": self.params['weight_decay'],
-            },
-            {
-                "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
-                "weight_decay": 0.0,
-            },
-        ]
-        optimizer = AdamW(optimizer_grouped_parameters, lr=self.params['learning_rate'])
+        # no_decay = ["bias", "LayerNorm.weight"]
+        # optimizer_grouped_parameters = [
+        #     {
+        #         "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+        #         "weight_decay": self.params['weight_decay'],
+        #     },
+        #     {
+        #         "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+        #         "weight_decay": 0.0,
+        #     },
+        # ]
+        optimizer = AdamW(model.parameters(), 
+                            lr=self.params['learning_rate'], 
+                            eps=self.params['adam_epsilon'])
 
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=2e-5, total_steps=2000)
+        # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=2e-5, total_steps=2000)
 
-        self.sched = scheduler
-        self.optim = optimizer
+        # self.sched = scheduler
+        # self.optim = optimizer
 
-        # scheduler = get_linear_schedule_with_warmup(
-        #     optimizer,
-        #     num_warmup_steps=self.params['warmup_steps'],
-        #     # num_warmup_steps=2,
-        #     num_training_steps=self.total_steps,
-        # )
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=self.params['warmup_steps'],
+            # num_warmup_steps=2,
+            num_training_steps=self.total_steps,
+        )
         # scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
         return [optimizer], [scheduler]
     
-    def on_batch_end(self):
-        #for group in self.optim.param_groups:
-        #    print('learning rate', group['lr'])
-        # This is needed to use the One Cycle learning rate that needs the learning rate to change after every batch
-        # Without this, the learning rate will only change after every epoch
-        if self.sched is not None:
-            self.sched.step()
+    # def on_batch_end(self):
+    #     #for group in self.optim.param_groups:
+    #     #    print('learning rate', group['lr'])
+    #     # This is needed to use the One Cycle learning rate that needs the learning rate to change after every batch
+    #     # Without this, the learning rate will only change after every epoch
+    #     if self.sched is not None:
+    #         self.sched.step()
     
-    def on_epoch_end(self):
-        if self.sched is not None:
-            self.sched.step()
+    # def on_epoch_end(self):
+    #     if self.sched is not None:
+    #         self.sched.step()
     
     def train_dataloader(self):
 
-        self.train_gen = DataLoader(dataset=self.train_data,
-                                    batch_size=self.params['batch_size'],
-                                    collate_fn=partial(supervised_collate_fn, params=self.params),
-                                    num_workers=self.params['num_workers'],
-                                    shuffle=True)
+        
 
-        # if ConstraintMatch, apply DataLoader
-        if self.params['constraintmatch']:
-            if self.params['dataset'] == 'cifar10':
-                transforms_weak = transforms_cifar10_weak
-                transforms_strong = transforms_cifar10_strong
-            if self.params['dataset'] == 'cifar20':
-                transforms_weak = transforms_cifar10_weak
-                transforms_strong = transforms_cifar10_strong
-            elif self.params['dataset'] == 'yalebext':
-                transforms_weak = transforms_yaleb_weak
-                transforms_strong = transforms_yaleb_strong
-            elif self.params['dataset'] == 'fashionmnist':
-                transforms_weak = transforms_fmnist_weak
-                transforms_strong = transforms_fmnist_strong
-            elif self.params['dataset'] == 'mnist':
-                transforms_weak = transforms_mnist_weak
-                transforms_strong = transforms_mnist_strong
-
-            cm_train_data = ConstraintMatchData(data=self.train_data,
-                                                weak_transform=transforms_weak,
-                                                strong_transform=transforms_strong)
-
-            self.cm_train_gen = DataLoader(dataset=cm_train_data,
-                                          batch_size=self.params['batch_size_ul'],
-                                          collate_fn=constraint_match_collate_fn,
-                                          num_workers=self.params['num_workers'],
-                                          shuffle=True)
-
-            return {'supervised_train': self.train_gen, 'cm_train': self.cm_train_gen}
-        elif self.params['constrained_clustering']:
+        
+        if self.params['constrained_clustering']:
             print(f'_____constrained____ \n')
             self.train_gen = DataLoader(dataset=self.train_data,
                                     batch_size=self.params['batch_size'],
@@ -274,6 +304,12 @@ class Experiment(pl.LightningModule):
                                     shuffle=True)
             return self.train_gen
         else:
+            self.train_gen = DataLoader(dataset=self.train_data,
+                                    batch_size=self.params['batch_size'],
+                                    collate_fn=partial(supervised_collate_fn, params=self.params),
+                                    num_workers=self.params['num_workers'],
+                                    pin_memory=self.params['pin_memory'],
+                                    shuffle=True)
             return self.train_gen
 
     def val_dataloader(self):
@@ -282,6 +318,7 @@ class Experiment(pl.LightningModule):
                                   batch_size=self.params['batch_size'],
                                   collate_fn=partial(supervised_collate_fn, params=self.params),
                                   num_workers=self.params['num_workers'],
+                                  pin_memory=self.params['pin_memory'],
                                   shuffle=True)
 
         return self.val_gen
@@ -292,6 +329,7 @@ class Experiment(pl.LightningModule):
                               batch_size=self.params['batch_size'],
                               collate_fn=partial(supervised_collate_fn, params=self.params),
                               num_workers=self.params['num_workers'],
+                              pin_memory=self.params['pin_memory'],
                               shuffle=True)
 
         return test_gen

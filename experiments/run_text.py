@@ -12,7 +12,8 @@ from sscc.data.utils import get_data
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
-from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.callbacks import LearningRateMonitor, GPUStatsMonitor, DeviceStatsMonitor
+import torch.profiler 
 from sscc.experiments import Experiment, save_dict_as_yaml_mlflow
 from sscc.utils import *
 
@@ -91,17 +92,22 @@ def run_experiment(args):
         print(f"model: {type(experiment.model)}")
         # model.run_lda(train_data.x)
 
+        # pytorch_profiler = torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CUDA], record_shapes=True, profile_memory=True)
+
         
         trainer = Trainer(
                         reload_dataloaders_every_epoch=False,
                         min_epochs=params['epochs'],
                         log_every_n_steps=100,
-                        # gpus=1,
+                        gpus=-1,
+                        # amp_backend='native',
+                        precision=16,
                         checkpoint_callback=True,
                         logger=mlflow_logger,
                         check_val_every_n_epoch=1,
                         callbacks=[LearningRateMonitor(logging_interval='step')],
-                        **config['trainer_params']
+                        # profiler = 'pytorch',
+                        **config['trainer_params'] 
         )
 
         trainer.fit(experiment)

@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score
 
 from torch.utils.data.dataloader import default_collate
 from transformers.file_utils import is_tf_available, is_torch_available
-from transformers import BertTokenizerFast
+from transformers import BertTokenizerFast, RobertaTokenizerFast
 from sscc.data.cifar10 import CIFAR10, transforms_cifar10_train, transforms_cifar10_test
 from sscc.data.cifar20 import CIFAR20
 from sscc.data.mnist import MNIST, transforms_mnist_train, transforms_mnist_test
@@ -16,6 +16,8 @@ from sscc.data.yalebextend import YaleBExt, transforms_yaleb_train
 from sscc.data.newsgroups import newsgroups
 
 tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased', do_lower_case=True)
+# tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base', do_lower_case=True)
+
 
 # def constrained_collate_fn(batch, data_collate=default_collate):
 #     """
@@ -51,10 +53,12 @@ def constrained_collate_fn(batch, params):
         4) yj
         5) cij
     """
+    # https://stackoverflow.com/questions/62669261/how-to-encode-multiple-sentences-using-transformers-berttokenizer
+
     # from timeit import default_timer as timer; start = timer()
     transposed_data = list(zip(*batch))
     data = [default_collate(b) for b in transposed_data]
-    print(f"\n\n\n\nprinting from inside the constrained collate fn \n\n\n {len(data), type(data)}, and params {params}\n\n")
+    # print(f"\n\n\n\nprinting from inside the constrained collate fn \n\n\n {len(data), type(data)}, and params {params}\n\n")
     
     x_i = list(data[0])
     x_j = list(data[1])
@@ -65,7 +69,7 @@ def constrained_collate_fn(batch, params):
     # notes = list(zip(x_i, x_j))
     targets = torch.cat((y_i, y_j), dim=0)
     # target_j = torch.tensor(self.y[j])
-    print( y_i, y_j, c_ij, targets.shape)
+    # print( y_i, y_j, c_ij, targets.shape)
     # target = target_i.transpose()
 
     encoding_xi = tokenizer.batch_encode_plus(
@@ -93,14 +97,14 @@ def constrained_collate_fn(batch, params):
     # rearrange pre-specified constraints to make them trainable!
     train_target, eval_target = prepare_task_target(targets, c_ij)
     
-    stacked_input = torch.cat((encoding_xi['input_ids'], encoding_xj['input_ids']), dim=0)
-    stacked_attention = torch.cat((encoding_xi['attention_mask'], encoding_xj['attention_mask']), dim=0)
+    stacked_input = torch.cat((encoding_xi['input_ids'], encoding_xj['input_ids']), dim=0).to(torch.device('cuda'))
+    stacked_attention = torch.cat((encoding_xi['attention_mask'], encoding_xj['attention_mask']), dim=0).to(torch.device('cuda'))
     stacked_tokens = torch.cat((encoding_xi['token_type_ids'], encoding_xj['token_type_ids']), dim=0)
-    print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {targets.shape}, {encoding_xi['input_ids'].shape}, {stacked_input.shape }\n\n\n")
+    # print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {targets.shape}, {encoding_xi['input_ids'].shape}, {stacked_input.shape }\n\n\n")
 
     return {
         #'text': note,
-        'label': torch.tensor(targets, dtype=torch.long),
+        'label': torch.tensor(targets, dtype=torch.long).to(torch.device('cuda')),
         'input_ids': (stacked_input),
         'attention_mask': (stacked_attention),
         'token_type_ids': (stacked_tokens),
@@ -113,7 +117,7 @@ def supervised_collate_fn(batch, params):
     """
     transposed_data = list(zip(*batch))
     data = [default_collate(b) for b in transposed_data]
-    print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {len(data), type(data)}, and params {params}\n\n")
+    # print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {len(data), type(data)}, and params {params}\n\n")
 
     notes = list(data[0])
     targets = data[1]
@@ -128,14 +132,17 @@ def supervised_collate_fn(batch, params):
     return_attention_mask=True,
     return_tensors='pt',
     )    
-    print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {targets}, {encoding['input_ids'].shape }\n\n\n")
+    # print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {targets}, {encoding['input_ids'].shape }\n\n\n")
+
+    train_target, eval_target = prepare_supervised_task_target(target=data[1])
 
     return {
         #'text': note,
-        'label': torch.tensor(targets, dtype=torch.long),
-        'input_ids': (encoding['input_ids']),
-        'attention_mask': (encoding['attention_mask']),
-        'token_type_ids': (encoding['token_type_ids'])
+        'label': torch.tensor(targets, dtype=torch.long).to(torch.device('cuda')),
+        'input_ids': (encoding['input_ids'].to(torch.device('cuda'))),
+        'attention_mask': (encoding['attention_mask'].to(torch.device('cuda'))),
+        'token_type_ids': (encoding['token_type_ids']),
+        'train_target': (train_target)
     }
 
 #TODO: come up with a collate logic for ConstraintMatch

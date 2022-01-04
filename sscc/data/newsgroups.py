@@ -25,16 +25,16 @@ class newsgroups(TextDataset):
             self.download()
         self.x, self.y, self.c = self.load_dataset(part=self.part, clean_text=self.clean_text, remove_stopwords=self.remove_stopwords, is_tensor=self.is_tensor)
     
-    def __len__(self):
-        """as the __getitem__() must work differently for train and val/test,
-        the __len__() must be specified such that the indeces are only sampled from the desired sample space.
-        For train: __len__() corresponds to constraints df (C_train.csv)
-        For val/test: __len() corresponds to the total num of obs available.
-        """
-        # if self.part == 'train':
-        #     return len(self.c)
-        # else:
-        return len(self.y)
+    # def __len__(self):
+    #     """as the __getitem__() must work differently for train and val/test,
+    #     the __len__() must be specified such that the indeces are only sampled from the desired sample space.
+    #     For train: __len__() corresponds to constraints df (C_train.csv)
+    #     For val/test: __len() corresponds to the total num of obs available.
+    #     """
+    #     # if self.part == 'train':
+    #     #     return len(self.c)
+    #     # else:
+    #     return super.
 
     def __getitem__(self, index):
         return super().__getitem__(index)

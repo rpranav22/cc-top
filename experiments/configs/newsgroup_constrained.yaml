@@ -10,27 +10,28 @@ exp_params:
     dataset: 'newsgroups'
     val_size: 2000
     epochs: 2
-    batch_size: 32
-    max_length: 256
+    batch_size: 16
+    max_length: 128
     num_classes: 20
     is_tensor: True
     constraintmatch: False
     constrained_clustering: True
     num_workers: 0
+    pin_memory: False
     learning_rate: 0.00002
     adam_epsilon: 0.00000001
     weight_decay: 0.01
     warmup_steps: 0
-    num_constraints: 20000
+    num_constraints: 10000
     clean_text: False
     remove_stopwords: False
     k: NULL
     
 trainer_params:
-    max_epochs: 1
+    max_epochs: 10
     
 
 logging_params:
     manual_seed: 1337
     experiment_name: 'cc_test'
-    run_name: 'v1'
+    run_name: 'v2_128'

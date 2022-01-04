@@ -69,13 +69,14 @@ class TextDataset(data.Dataset):
 
     @property
     def num_classes(self):
-        return len(self.y)
+        return self.num_classes
 
     def __len__(self):
+
         if self.part == 'train':
             return self.c.shape[0]
         else:
-            return self.x.shape[0]
+            return len(self.x)
 
     def __getitem__(self, index):
         """the iterator over indices work differently for train and val/test data.
@@ -88,15 +89,20 @@ class TextDataset(data.Dataset):
         """
         if torch.is_tensor(index):
             index = index.tolist()
+        # pdb.set_trace()
 
         if self.part == 'train' and self.constrained_clustering:
             # print(f'index: {index}\n {self.c.info()}')
+            # pdb.set_trace()
             constraint_info = self.c.iloc[index, :]
+
             i, j = constraint_info['i'], constraint_info['j']
             c_ij = constraint_info['c_ij']
             y_i, y_j = constraint_info['y_i'], constraint_info['y_j']
 
             assert y_i == self.y[i]
+
+            # pdb.set_trace()
 
             return self.x[i], self.x[j], y_i, y_j, c_ij
 
