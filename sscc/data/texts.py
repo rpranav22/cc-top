@@ -22,8 +22,9 @@ class TextDataset(data.Dataset):
                  val_size: float,
                  num_constraints: int,
                  k: int,
+                 max_length: int,
+                 constrained_clustering: bool=False,
                  seed: int=1337,
-                 max_length: int=512,
                  test_size: float=0.2,
                  clean_text: bool = True, 
                  remove_stopwords: bool = True,
@@ -53,6 +54,7 @@ class TextDataset(data.Dataset):
         self.val_size = val_size
         self.max_length = max_length
         self.clean_text = clean_text
+        self.constrained_clustering = constrained_clustering
         self.remove_stopwords = remove_stopwords
         self.k = k
         self.num_constraints = num_constraints
@@ -67,13 +69,14 @@ class TextDataset(data.Dataset):
 
     @property
     def num_classes(self):
-        return len(self.y)
+        return self.num_classes
 
     def __len__(self):
+
         if self.part == 'train':
             return self.c.shape[0]
         else:
-            return self.x.shape[0]
+            return len(self.x)
 
     def __getitem__(self, index):
         """the iterator over indices work differently for train and val/test data.
@@ -86,26 +89,27 @@ class TextDataset(data.Dataset):
         """
         if torch.is_tensor(index):
             index = index.tolist()
-        note = str(self.x[index])
-        target = self.y[index]
-        
-        encoding = self.tokenizer.encode_plus(
-          note,
-          add_special_tokens=True,
-          max_length=self.max_length,
-          return_token_type_ids=True,
-          truncation=True,
-          padding='max_length',
-          return_attention_mask=True,
-          return_tensors='pt',
-        )    
-        return {
-            #'text': note,
-            'label': torch.tensor(target, dtype=torch.long),
-            'input_ids': (encoding['input_ids']).flatten(),
-            'attention_mask': (encoding['attention_mask']).flatten(),
-            'token_type_ids': (encoding['token_type_ids']).flatten()
-        }
+        # pdb.set_trace()
+
+        if self.part == 'train' and self.constrained_clustering:
+            # print(f'index: {index}\n {self.c.info()}')
+            # pdb.set_trace()
+            constraint_info = self.c.iloc[index, :]
+
+            i, j = constraint_info['i'], constraint_info['j']
+            c_ij = constraint_info['c_ij']
+            y_i, y_j = constraint_info['y_i'], constraint_info['y_j']
+
+            assert y_i == self.y[i]
+
+            # pdb.set_trace()
+
+            return self.x[i], self.x[j], y_i, y_j, c_ij
+
+            
+        else:
+            return self.x[index], self.y[index]
+            
         
 
     def load_dataset(self, part='train', clean_text=True, remove_stopwords=True, is_tensor=True):
@@ -284,7 +288,7 @@ class TextDataset(data.Dataset):
                     cl_ind1.append(tmp1)
                     cl_ind2.append(tmp2)
 
-                    num_constraints -= 1
+                num_constraints -= 1
 
         ml_ind1, ml_ind2, cl_ind1, cl_ind2 = np.array(ml_ind1), np.array(ml_ind2), np.array(cl_ind1), np.array(cl_ind2)
         # apply transitivity closure of ML and entailment of CL

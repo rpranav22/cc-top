@@ -1,7 +1,7 @@
 import torch
+from sscc.models.constrained_clustering import ConstrainedClustering
 from sscc.models.lda import LDA
-
-
+from sscc.models.supervised_plm import SupervisedPLM
 from sscc.models.supervised import Supervised
 from sscc.models.scm import SCM
 from sscc.models.pseudolabel import PseudoLabel
@@ -14,7 +14,6 @@ from sscc.architectures.resnet import ResNet
 from sscc.architectures.resnet18 import resnet18, ClusteringModel
 from sscc.architectures.wideresnet import WideResNet
 from sscc.architectures.resnet18_small import ResNet18
-from sscc.models.supervised_plm import SupervisedPLM
 from sscc.architectures.bertsequenceclassification import BertForClassification
 
 
@@ -24,6 +23,7 @@ models = {'supervised': Supervised,
           'pseudolabel': PseudoLabel,
           'unsupervised': LDA,
           'supervised_plm': SupervisedPLM,
+          'constrained_clustering': ConstrainedClustering,
           'bertopic': BERTopic}
 
 architectures = {'lenet': LeNet,

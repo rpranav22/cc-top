@@ -12,7 +12,8 @@ from sscc.data.utils import get_data
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
-from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.callbacks import LearningRateMonitor, GPUStatsMonitor, DeviceStatsMonitor
+import torch.profiler 
 from sscc.experiments import Experiment, save_dict_as_yaml_mlflow
 from sscc.utils import *
 
@@ -78,6 +79,7 @@ def run_experiment(args):
 
         experiment = Experiment(model,
                                 params=config['exp_params'],
+                                model_params=config['model_params'], 
                                 log_params=config['logging_params'],
                                 trainer_params=config['trainer_params'],
                                 run_name=config['logging_params']['run_name'],
@@ -87,21 +89,26 @@ def run_experiment(args):
         # train_data = get_data(root='./data', params=params, log_params=None, part='train')
         # val_data = get_data(root='./data', params=params, log_params=None, part='val')
 
-        print("Primer: ", len(experiment.train_data), type(experiment.train_data.x), len(experiment.train_data.c))
+        print("Primer: ", len(experiment.train_data), type(experiment.train_data.x), len(experiment.train_data.c), len(experiment.test_data.y), len(experiment.test_data.c), len(experiment.val_data.y), len(experiment.val_data.c))
         print(f"model: {type(experiment.model)}")
         # model.run_lda(train_data.x)
+
+        # pytorch_profiler = torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CUDA], record_shapes=True, profile_memory=True)
 
         
         trainer = Trainer(
                         reload_dataloaders_every_epoch=False,
                         min_epochs=params['epochs'],
                         log_every_n_steps=100,
-                        gpus=1,
+                        gpus=-1,
+                        # amp_backend='native',
+                        precision=16,
                         checkpoint_callback=True,
                         logger=mlflow_logger,
                         check_val_every_n_epoch=1,
                         callbacks=[LearningRateMonitor(logging_interval='step')],
-                        **config['trainer_params']
+                        # profiler = 'pytorch',
+                        **config['trainer_params'] 
         )
 
         trainer.fit(experiment)

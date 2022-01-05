@@ -6,6 +6,7 @@ from sklearn.metrics import accuracy_score
 
 from torch.utils.data.dataloader import default_collate
 from transformers.file_utils import is_tf_available, is_torch_available
+from transformers import BertTokenizerFast, RobertaTokenizerFast
 from sscc.data.cifar10 import CIFAR10, transforms_cifar10_train, transforms_cifar10_test
 from sscc.data.cifar20 import CIFAR20
 from sscc.data.mnist import MNIST, transforms_mnist_train, transforms_mnist_test
@@ -14,7 +15,35 @@ from sscc.data.yaleb import YaleB
 from sscc.data.yalebextend import YaleBExt, transforms_yaleb_train
 from sscc.data.newsgroups import newsgroups
 
-def constrained_collate_fn(batch, data_collate=default_collate):
+tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased', do_lower_case=True)
+# tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base', do_lower_case=True)
+
+
+# def constrained_collate_fn(batch, data_collate=default_collate):
+#     """
+#     Collates the constrained samples only
+#     one sample of a batch consists of 5 elements: 
+#         1) xi
+#         2) xj
+#         3) yi
+#         4) yj
+#         5) cij
+#     """
+#     # from timeit import default_timer as timer; start = timer()
+#     transposed_data = list(zip(*batch))
+#     data = [data_collate(b) for b in transposed_data]
+
+#     # stack images x_i and x_j
+#     images = torch.cat((data[0], data[1]), dim=0)
+#     # stack labels y_i and y_j
+#     labels = torch.cat((data[2], data[3]), dim=0)
+#     constraints = data[4]
+#     # rearrange pre-specified constraints to make them trainable!
+#     train_target, eval_target = prepare_task_target(labels, constraints)
+#     # print(f'constrained_collate_fn: {timer() - start}')
+#     return {'images': images.double(), 'train_target': train_target, 'eval_target': eval_target}
+
+def constrained_collate_fn(batch, params):
     """
     Collates the constrained samples only
     one sample of a batch consists of 5 elements: 
@@ -24,30 +53,97 @@ def constrained_collate_fn(batch, data_collate=default_collate):
         4) yj
         5) cij
     """
+    # https://stackoverflow.com/questions/62669261/how-to-encode-multiple-sentences-using-transformers-berttokenizer
+
     # from timeit import default_timer as timer; start = timer()
     transposed_data = list(zip(*batch))
-    data = [data_collate(b) for b in transposed_data]
+    data = [default_collate(b) for b in transposed_data]
+    # print(f"\n\n\n\nprinting from inside the constrained collate fn \n\n\n {len(data), type(data)}, and params {params}\n\n")
+    
+    x_i = list(data[0])
+    x_j = list(data[1])
+    y_i = data[2].type(torch.int32)
+    y_j = data[3].type(torch.int32)
+    c_ij = data[4]
 
-    # stack images x_i and x_j
-    images = torch.cat((data[0], data[1]), dim=0)
-    # stack labels y_i and y_j
-    labels = torch.cat((data[2], data[3]), dim=0)
-    constraints = data[4]
+    # notes = list(zip(x_i, x_j))
+    targets = torch.cat((y_i, y_j), dim=0)
+    # target_j = torch.tensor(self.y[j])
+    # print( y_i, y_j, c_ij, targets.shape)
+    # target = target_i.transpose()
+
+    encoding_xi = tokenizer.batch_encode_plus(
+    x_i,
+    add_special_tokens=True,
+    max_length=params['max_length'],
+    return_token_type_ids=True,
+    truncation=True,
+    padding='max_length',
+    return_attention_mask=True,
+    return_tensors='pt',
+    )    
+
+    encoding_xj = tokenizer.batch_encode_plus(
+    x_j,
+    add_special_tokens=True,
+    max_length=params['max_length'],
+    return_token_type_ids=True,
+    truncation=True,
+    padding='max_length',
+    return_attention_mask=True,
+    return_tensors='pt',
+    )   
+            
     # rearrange pre-specified constraints to make them trainable!
-    train_target, eval_target = prepare_task_target(labels, constraints)
-    # print(f'constrained_collate_fn: {timer() - start}')
-    return {'images': images.double(), 'train_target': train_target, 'eval_target': eval_target}
+    train_target, eval_target = prepare_task_target(targets, c_ij)
+    
+    stacked_input = torch.cat((encoding_xi['input_ids'], encoding_xj['input_ids']), dim=0).to(torch.device('cuda'))
+    stacked_attention = torch.cat((encoding_xi['attention_mask'], encoding_xj['attention_mask']), dim=0).to(torch.device('cuda'))
+    stacked_tokens = torch.cat((encoding_xi['token_type_ids'], encoding_xj['token_type_ids']), dim=0)
+    # print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {targets.shape}, {encoding_xi['input_ids'].shape}, {stacked_input.shape }\n\n\n")
 
-def supervised_collate_fn(batch, data_collate=default_collate):
+    return {
+        #'text': note,
+        'label': torch.tensor(targets, dtype=torch.long).to(torch.device('cuda')),
+        'input_ids': (stacked_input),
+        'attention_mask': (stacked_attention),
+        'token_type_ids': (stacked_tokens),
+        'train_target': train_target
+    }
+
+def supervised_collate_fn(batch, params):
     """
     Collates supervised, labeled samples
     """
     transposed_data = list(zip(*batch))
-    data = [data_collate(b) for b in transposed_data]
+    data = [default_collate(b) for b in transposed_data]
+    # print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {len(data), type(data)}, and params {params}\n\n")
+
+    notes = list(data[0])
+    targets = data[1]
+    
+    encoding = tokenizer.batch_encode_plus(
+    notes,
+    add_special_tokens=True,
+    max_length=params['max_length'],
+    return_token_type_ids=True,
+    truncation=True,
+    padding='max_length',
+    return_attention_mask=True,
+    return_tensors='pt',
+    )    
+    # print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {targets}, {encoding['input_ids'].shape }\n\n\n")
 
     train_target, eval_target = prepare_supervised_task_target(target=data[1])
 
-    return {'images': data[0].double(), 'train_target': train_target, 'eval_target': eval_target}
+    return {
+        #'text': note,
+        'label': torch.tensor(targets, dtype=torch.long).to(torch.device('cuda')),
+        'input_ids': (encoding['input_ids'].to(torch.device('cuda'))),
+        'attention_mask': (encoding['attention_mask'].to(torch.device('cuda'))),
+        'token_type_ids': (encoding['token_type_ids']),
+        'train_target': (train_target)
+    }
 
 #TODO: come up with a collate logic for ConstraintMatch
 def constraint_match_collate_fn(batch, data_collate=default_collate):
@@ -143,7 +239,7 @@ def compute_metrics(preds, labels):
     # preds = pred.predictions.argmax(-1)
     # calculate accuracy using sklearn's function
     acc = accuracy_score(labels, preds)
-    print(len(labels), len(preds), acc, " ___________ acc")
+    # print(len(labels), len(preds), acc, " ___________ acc")
     return {
         'accuracy': acc,
     }
@@ -167,7 +263,9 @@ def get_data(root, params, log_params, part):
                        num_constraints=params['num_constraints'],
                        is_tensor=params['is_tensor'],
                        clean_text=params['clean_text'],
+                       constrained_clustering=params['constrained_clustering'],
                        remove_stopwords=['remove_stopwords'],
+                       max_length = params['max_length'],
                        k=params['k'])
     elif params['dataset'] == 'cifar20':
         data = CIFAR20(root=root,

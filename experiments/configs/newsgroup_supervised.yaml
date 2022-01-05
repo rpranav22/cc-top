@@ -11,11 +11,14 @@ exp_params:
     dataset: 'newsgroups'
     val_size: 2000
     epochs: 2
-    batch_size: 64
+    batch_size: 32
+    max_length: 128
     num_classes: 20
     is_tensor: True
     constraintmatch: False
+    constrained_clustering: False
     num_workers: 0
+    pin_memory: False
     learning_rate: 0.00002
     adam_epsilon: 0.00000001
     weight_decay: 0.01
@@ -26,10 +29,10 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 2
+    max_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
     experiment_name: 'supervised_test'
-    run_name: 'v2'
+    run_name: 'v2.2'

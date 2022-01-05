@@ -3,20 +3,25 @@ import torch
 import torch.nn as nn
 from transformers.file_utils import is_tf_available, is_torch_available, is_torch_tpu_available
 from transformers import BertTokenizerFast, BertForSequenceClassification
-import numpy as np
 from sscc.metrics import Evaluator
+import numpy as np
 from torch.nn import functional as F
-import os
+from sscc.data.utils import PairEnum
+from sscc.losses import KCL, MCL
 import pandas as pd
+import os
+import pdb
 import tempfile
 
-class SupervisedPLM(nn.Module):
+
+class ConstrainedClustering(nn.Module):
     def __init__(self, model, loss) -> None:
-        super(SupervisedPLM, self).__init__()
+        super(ConstrainedClustering, self).__init__()
         # self.max_length = 512
         self.model_name = "bert-base-uncased"
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model = model #.to(self.device)
+        self.model = model#.to(self.device)
+        self.criterion = KCL() if loss == 'KCL' else MCL()
 
         self.pre_classifier = nn.Linear(self.model.bert.config.hidden_size, self.model.bert.config.hidden_size)
         self.classifier = nn.Linear(self.model.bert.config.hidden_size, 20)
@@ -29,20 +34,29 @@ class SupervisedPLM(nn.Module):
             outputs = self.model(*input, **kwargs)
             
             hidden_state = outputs[0]  # (bs, seq_len, dim)
+
             pooled_output = hidden_state[:, 0]  # (bs, dim)
             pooled_output = self.pre_classifier(pooled_output)  # (bs, dim)
             pooled_output = self.relu(pooled_output)  # (bs, dim)
             pooled_output = self.dropout(pooled_output)  # (bs, dim)
+
             logits = self.classifier(pooled_output)  # (bs, dim)
 
-            return logits
+            logits_softmax = F.softmax(logits, dim=1)
+
+            return logits_softmax
     
     def loss_function(self, out, batch, **kwargs):
-        loss_fct = torch.nn.CrossEntropyLoss()
-        loss = loss_fct(out.view(-1, self.model.num_labels), batch['label'].view(-1))
+        """
+        """
+        # out = outs['out']
+        train_target = batch['train_target']
+        prob1, prob2 = PairEnum(out)
+
+        loss = self.criterion(prob1, prob2, simi=train_target)
 
         return {'loss': loss}
-    
+
     def evaluate(self, eval_dataloader: Any, confusion: Any=Evaluator(20), part: str='val', logger: Any=None, true_k: int=20):
         """Evaluate model on any dataloader during training and testings
 
@@ -62,8 +76,7 @@ class SupervisedPLM(nn.Module):
             label = batch['label']
             attention_mask = batch['attention_mask']
 
-            y_hat = self.forward(input_ids, attention_mask, label)
-            outs = F.softmax(y_hat, dim=1)
+            outs = self.forward(input_ids, attention_mask, label)
 
             confusion.add(outs, batch['label'])
             if part == 'test':
@@ -73,8 +86,6 @@ class SupervisedPLM(nn.Module):
         if part == 'test': 
             pred = np.concatenate(pred, axis=0)
 
-        # val_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
-        # val_acc = torch.tensor(val_acc)
 
         confusion.optimal_assignment(confusion.k)
         print('\n')
@@ -103,4 +114,5 @@ class SupervisedPLM(nn.Module):
 
         return eval_results
     
+
     
