@@ -28,7 +28,7 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 10
+    max_epochs: 1
     
 
 logging_params:

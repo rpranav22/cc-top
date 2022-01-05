@@ -23,7 +23,7 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/newsgroup_constrained.yaml')
+                        default='configs/newsgroup_supervised.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')                        
     parser.add_argument('--batch_size', type=int, default=None,
@@ -79,6 +79,7 @@ def run_experiment(args):
 
         experiment = Experiment(model,
                                 params=config['exp_params'],
+                                model_params=config['model_params'], 
                                 log_params=config['logging_params'],
                                 trainer_params=config['trainer_params'],
                                 run_name=config['logging_params']['run_name'],

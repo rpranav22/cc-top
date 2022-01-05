@@ -34,6 +34,7 @@ class Experiment(pl.LightningModule):
     def __init__(self,
                  model,
                  params,
+                 model_params,
                  log_params,
                  run_name,
                  experiment_name,
@@ -42,6 +43,7 @@ class Experiment(pl.LightningModule):
         super(Experiment, self).__init__()
         self.new_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = model
+        self.model_params = model_params
         self.model.epoch = self.current_epoch
         self.params = params
         self.log_params = log_params
@@ -99,11 +101,11 @@ class Experiment(pl.LightningModule):
         #token_type_ids = batch['token_type_ids']
         # fwd
         y_hat = self(input_ids, attention_mask, label)
-        
+
         # loss
         loss = self.model.loss_function(out=y_hat, batch=batch, **self.params)
 
-        for key, value in loss.items(): self.log(name=f"trainr_{key}", value=value, prog_bar=True)
+        for key, value in loss.items(): self.log(name=f"trainer_{key}", value=value, prog_bar=True)
 
         self.log(name='train_step', value=self.train_step)
         self.train_step += 1
@@ -143,13 +145,13 @@ class Experiment(pl.LightningModule):
         # loss_fct = torch.nn.CrossEntropyLoss()
         # loss = loss_fct(y_hat.view(-1, self.params['num_classes']), label.view(-1))
 
-        # # acc
-        # a, y_hat = torch.max(y_hat, dim=1)
-        # val_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
-        # val_acc = torch.tensor(val_acc)
+        # acc
+        a, y_hat = torch.max(y_hat, dim=1)
+        val_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
+        val_acc = torch.tensor(val_acc)
 
 
-        return {'val_loss': loss}   #, 'val_acc': val_acc}
+        return {'val_loss': loss   , 'val_acc': val_acc}
 
     def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x['val_loss']['loss'] for x in outputs]).mean().to(torch.double)
@@ -164,12 +166,16 @@ class Experiment(pl.LightningModule):
         # skip epoch 0 as this is the sanity check of pt lightning
         if self.current_epoch > 0: self.log_dict(dictionary=results)
 
+        avg_val_acc = torch.stack([x['val_acc'] for x in outputs]).mean()
+        print(f"\n\n___________________\n\naverage val accuracy is ---------> {avg_val_acc}\n\n")
+        self.log_dict({'avg_val_acc': avg_val_acc})
+
         # self._save_model_mlflow()
 
         return {'avg_val_loss': avg_loss}
 
         # avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        # avg_val_acc = torch.stack([x['val_acc'] for x in outputs]).mean()
+        
 
         # self.log("val_loss", avg_loss, prog_bar=True)
         # self.log_dict({'avg_val_acc': avg_val_acc})
@@ -185,7 +191,10 @@ class Experiment(pl.LightningModule):
         # loss
         loss = self.model.loss_function(y_hat, batch, **self.params)
 
-        return loss
+        a, y_hat = torch.max(y_hat, dim=1)
+        test_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
+
+        return {'test_loss': loss, 'test_acc': torch.tensor(test_acc)}
 
 
         # loss_fct = torch.nn.CrossEntropyLoss()
@@ -197,7 +206,7 @@ class Experiment(pl.LightningModule):
         # return {'test_loss':loss, 'test_acc': torch.tensor(test_acc)}
     
     def test_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['loss'] for x in outputs]).mean().to(torch.double)
+        avg_loss = torch.stack([x['test_loss']['loss'] for x in outputs]).mean().to(torch.double)
         avg_loss = avg_loss.detach()
 
         scores = self.model.evaluate(eval_dataloader=self.test_dataloader(),
@@ -217,6 +226,8 @@ class Experiment(pl.LightningModule):
                                          value=self.experiment_name,
                                          run_id=self.logger.run_id)
 
+        # avg_test_acc = torch.stack([x['test_acc'] for x in outputs]).mean()
+        # print(f"\n\n___________________\n\naverage test accuracy is ---------> {avg_test_acc}\n\n")
 
         # avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
         # avg_test_acc = torch.stack([x['test_acc'] for x in outputs]).mean()

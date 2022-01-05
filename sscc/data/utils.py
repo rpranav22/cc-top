@@ -239,7 +239,7 @@ def compute_metrics(preds, labels):
     # preds = pred.predictions.argmax(-1)
     # calculate accuracy using sklearn's function
     acc = accuracy_score(labels, preds)
-    print(len(labels), len(preds), acc, " ___________ acc")
+    # print(len(labels), len(preds), acc, " ___________ acc")
     return {
         'accuracy': acc,
     }
