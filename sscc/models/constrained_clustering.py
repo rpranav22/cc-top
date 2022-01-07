@@ -1,8 +1,6 @@
 from typing import Any
 import torch
 import torch.nn as nn
-from transformers.file_utils import is_tf_available, is_torch_available, is_torch_tpu_available
-from transformers import BertTokenizerFast, BertForSequenceClassification
 from sscc.metrics import Evaluator
 import numpy as np
 from torch.nn import functional as F

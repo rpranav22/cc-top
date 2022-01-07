@@ -5,7 +5,6 @@ import argparse
 import torch 
 # from transformers import Trainer, TrainingArguments
 import numpy as np
-import time
 import torch.backends.cudnn as cudnn
 from sscc.data.newsgroups import newsgroups
 from sscc.data.utils import get_data
@@ -13,7 +12,8 @@ from sscc.data.utils import get_data
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
 from pytorch_lightning.callbacks import LearningRateMonitor, GPUStatsMonitor, DeviceStatsMonitor
-import torch.profiler 
+from pytorch_lightning.profiler import PyTorchProfiler
+import torch.profiler
 from sscc.experiments import Experiment, save_dict_as_yaml_mlflow
 from sscc.utils import *
 
@@ -32,6 +32,9 @@ def parse_args():
                         help='name of the run')
     args = parser.parse_args()
     return args
+
+def output_fn(p):
+   p.export_chrome_trace("./trace/resnet50_4/worker0.pt.trace.json")
 
 def run_experiment(args):
     # torch.multiprocessing.set_start_method('spawn')
@@ -94,6 +97,7 @@ def run_experiment(args):
         # model.run_lda(train_data.x)
 
         # pytorch_profiler = torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CUDA], record_shapes=True, profile_memory=True)
+        pytorch_profiler = PyTorchProfiler(on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/constrained_clustering'), record_shapes=True, profile_memory=True)
 
         
         trainer = Trainer(
@@ -107,7 +111,7 @@ def run_experiment(args):
                         logger=mlflow_logger,
                         check_val_every_n_epoch=1,
                         callbacks=[LearningRateMonitor(logging_interval='step')],
-                        # profiler = 'pytorch',
+                        # profiler = pytorch_profiler,
                         **config['trainer_params'] 
         )
 

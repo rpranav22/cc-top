@@ -8,6 +8,7 @@ from sscc.metrics import Evaluator
 from torch.nn import functional as F
 import os
 import pandas as pd
+import pdb
 import tempfile
 
 class SupervisedPLM(nn.Module):
@@ -34,12 +35,12 @@ class SupervisedPLM(nn.Module):
             pooled_output = self.relu(pooled_output)  # (bs, dim)
             pooled_output = self.dropout(pooled_output)  # (bs, dim)
             logits = self.classifier(pooled_output)  # (bs, dim)
-
+            # pdb.set_trace()
             return logits
     
     def loss_function(self, out, batch, **kwargs):
         loss_fct = torch.nn.CrossEntropyLoss()
-        loss = loss_fct(out.view(-1, self.model.num_labels), batch['label'].view(-1))
+        loss = loss_fct(out.view(-1, self.model.num_labels), batch['label'].to(torch.device('cuda')).view(-1))
 
         return {'loss': loss}
     
@@ -73,8 +74,6 @@ class SupervisedPLM(nn.Module):
         if part == 'test': 
             pred = np.concatenate(pred, axis=0)
 
-        # val_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
-        # val_acc = torch.tensor(val_acc)
 
         confusion.optimal_assignment(confusion.k)
         print('\n')

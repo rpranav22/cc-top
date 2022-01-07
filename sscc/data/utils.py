@@ -135,12 +135,12 @@ def supervised_collate_fn(batch, params):
     # print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {targets}, {encoding['input_ids'].shape }\n\n\n")
 
     train_target, eval_target = prepare_supervised_task_target(target=data[1])
-
+    # pdb.set_trace()
     return {
         #'text': note,
-        'label': torch.tensor(targets, dtype=torch.long).to(torch.device('cuda')),
-        'input_ids': (encoding['input_ids'].to(torch.device('cuda'))),
-        'attention_mask': (encoding['attention_mask'].to(torch.device('cuda'))),
+        'label': torch.tensor(targets, dtype=torch.long),
+        'input_ids': (encoding['input_ids']),
+        'attention_mask': (encoding['attention_mask']),
         'token_type_ids': (encoding['token_type_ids']),
         'train_target': (train_target)
     }

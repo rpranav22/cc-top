@@ -1,5 +1,7 @@
 from torch import nn as nn
 import numpy as np
+import torch
+import pdb
 # from transformers import BertForSequenceClassification
 # import transformers
 from transformers import BertModel, BertConfig, RobertaConfig, RobertaModel
@@ -16,9 +18,9 @@ class BertForClassification(nn.Module):
         # nn.init.xavier_normal_(self.classifier.weight)
 
     def forward(self, input_ids, attention_mask, labels):
-
-        outputs = self.bert(input_ids=input_ids, \
-                         attention_mask=attention_mask)
-
+        
+        outputs = self.bert(input_ids=input_ids.to(torch.device('cuda')), \
+                         attention_mask=attention_mask.to(torch.device('cuda')))
+        # pdb.set_trace()
         
         return outputs
