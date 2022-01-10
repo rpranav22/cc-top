@@ -11,7 +11,7 @@ exp_params:
     dataset: 'newsgroups'
     val_size: 2000
     epochs: 2
-    batch_size: 64
+    batch_size: 32
     max_length: 128
     num_classes: 20
     is_tensor: True
@@ -34,5 +34,5 @@ trainer_params:
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'supervised_test'
+    experiment_name: 'supervised-profiler_test'
     run_name: 'v2.2'

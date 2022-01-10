@@ -97,21 +97,21 @@ def run_experiment(args):
         # model.run_lda(train_data.x)
 
         # pytorch_profiler = torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CUDA], record_shapes=True, profile_memory=True)
-        pytorch_profiler = PyTorchProfiler(on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/constrained_clustering'), record_shapes=True, profile_memory=True)
-
+        pytorch_profiler = PyTorchProfiler(activities=[torch.profiler.ProfilerActivity.CUDA], dirpath='./supervised_profiler/', filename='trace_profiler', export_to_chrome=True, record_shapes=True, profile_memory=True)
+        # torch.profiler.tensorboard_trace_handler('./log/constrained_clustering')
         
         trainer = Trainer(
                         reload_dataloaders_every_epoch=False,
                         min_epochs=params['epochs'],
                         log_every_n_steps=100,
-                        gpus=-1,
+                        gpus=1,
                         # amp_backend='native',
                         precision=16,
                         checkpoint_callback=True,
                         logger=mlflow_logger,
                         check_val_every_n_epoch=1,
                         callbacks=[LearningRateMonitor(logging_interval='step')],
-                        # profiler = pytorch_profiler,
+                        profiler = pytorch_profiler,
                         **config['trainer_params'] 
         )
 
