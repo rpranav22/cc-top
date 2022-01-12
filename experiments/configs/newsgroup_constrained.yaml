@@ -1,18 +1,17 @@
 model_params:
     model: 'constrained_clustering'
-    loss: None
+    loss: MCL
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_labels: 20
+        num_classes: 30
 
 exp_params:
     dataset: 'newsgroups'
     val_size: 2000
-    epochs: 2
-    batch_size: 16
-    max_length: 128
-    num_classes: 20
+    batch_size: 32
+    max_length: 256
+    num_constraints: 10000
     is_tensor: True
     constraintmatch: False
     constrained_clustering: True
@@ -22,16 +21,16 @@ exp_params:
     adam_epsilon: 0.00000001
     weight_decay: 0.01
     warmup_steps: 0
-    num_constraints: 10000
     clean_text: False
     remove_stopwords: False
     k: NULL
     
 trainer_params:
-    max_epochs: 1
+    max_epochs: 5
+    min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
     experiment_name: 'cc_test'
-    run_name: 'v2_128'
+    run_name: 'v3'

@@ -4,16 +4,14 @@ model_params:
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_labels: 20
+        num_classes: 20
         
 
 exp_params:
     dataset: 'newsgroups'
     val_size: 2000
-    epochs: 2
-    batch_size: 32
-    max_length: 128
-    num_classes: 20
+    batch_size: 64
+    max_length: 256
     is_tensor: True
     constraintmatch: False
     constrained_clustering: False
@@ -30,9 +28,10 @@ exp_params:
     
 trainer_params:
     max_epochs: 1
+    min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'supervised-profiler_test'
-    run_name: 'v2.2'
+    experiment_name: 'supervised_test'
+    run_name: 'v3'

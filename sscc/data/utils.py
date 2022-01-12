@@ -97,14 +97,14 @@ def constrained_collate_fn(batch, params):
     # rearrange pre-specified constraints to make them trainable!
     train_target, eval_target = prepare_task_target(targets, c_ij)
     
-    stacked_input = torch.cat((encoding_xi['input_ids'], encoding_xj['input_ids']), dim=0).to(torch.device('cuda'))
-    stacked_attention = torch.cat((encoding_xi['attention_mask'], encoding_xj['attention_mask']), dim=0).to(torch.device('cuda'))
+    stacked_input = torch.cat((encoding_xi['input_ids'], encoding_xj['input_ids']), dim=0)
+    stacked_attention = torch.cat((encoding_xi['attention_mask'], encoding_xj['attention_mask']), dim=0)
     stacked_tokens = torch.cat((encoding_xi['token_type_ids'], encoding_xj['token_type_ids']), dim=0)
     # print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {targets.shape}, {encoding_xi['input_ids'].shape}, {stacked_input.shape }\n\n\n")
 
     return {
         #'text': note,
-        'label': torch.tensor(targets, dtype=torch.long).to(torch.device('cuda')),
+        'label': torch.tensor(targets, dtype=torch.long),
         'input_ids': (stacked_input),
         'attention_mask': (stacked_attention),
         'token_type_ids': (stacked_tokens),
@@ -133,14 +133,13 @@ def supervised_collate_fn(batch, params):
     return_tensors='pt',
     )    
     # print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {targets}, {encoding['input_ids'].shape }\n\n\n")
-
     train_target, eval_target = prepare_supervised_task_target(target=data[1])
     # pdb.set_trace()
     return {
         #'text': note,
         'label': torch.tensor(targets, dtype=torch.long),
-        'input_ids': (encoding['input_ids']),
-        'attention_mask': (encoding['attention_mask']),
+        'input_ids': (encoding['input_ids'].to(torch.device('cuda'))),
+        'attention_mask': (encoding['attention_mask'].to(torch.device('cuda'))),
         'token_type_ids': (encoding['token_type_ids']),
         'train_target': (train_target)
     }

@@ -6,7 +6,6 @@ import pdb
 import os
 import pytorch_lightning as pl
 import warnings
-import math
 import tempfile
 import yaml
 
@@ -18,13 +17,7 @@ from torchvision.utils import save_image
 from pytorch_lightning.loggers import MLFlowLogger
 
 from sscc.data.utils import constrained_collate_fn, supervised_collate_fn, constraint_match_collate_fn, get_data, compute_metrics
-from sscc.data.images import ConstraintMatchData
-from sscc.data.cifar10 import transforms_cifar10_weak, transforms_cifar10_strong
-from sscc.data.yalebextend import transforms_yaleb_weak, transforms_yaleb_strong
-from sscc.data.fashionmnist import transforms_fmnist_weak, transforms_fmnist_strong
-from sscc.data.mnist import transforms_mnist_weak, transforms_mnist_strong
 from sscc.metrics import Evaluator
-from timeit import default_timer as timer
 
 warnings.filterwarnings('ignore')
 
@@ -112,8 +105,9 @@ class Experiment(pl.LightningModule):
     def training_epoch_end(self, outputs):
         avg_loss = torch.stack([x['loss'] for x in outputs]).mean().to(torch.double)
         avg_loss = avg_loss.detach()
-        results = self.model.evaluate(eval_dataloader=self.train_gen, confusion=Evaluator(k=self.params['num_classes']), part='train')
-        if self.current_epoch > 0: self.log_dict(results)
+
+        # results = self.model.evaluate(eval_dataloader=self.train_gen, confusion=Evaluator(k=self.model_params['architecture']['num_classes']), part='train')
+        # if self.current_epoch > 0: self.log_dict(results)
 
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
@@ -140,22 +134,20 @@ class Experiment(pl.LightningModule):
         avg_loss = torch.stack([x['val_loss']['loss'] for x in outputs]).mean().to(torch.double)
         avg_loss = avg_loss.detach()
 
+
         # validation performance
-        results = self.model.evaluate(eval_dataloader=self.val_gen,
-                                      confusion=Evaluator(k=self.params['num_classes']),
+        results = self.model.evaluate(eval_dataloader=self.val_dataloader(),
+                                      confusion=Evaluator(k=self.model_params['architecture']['num_classes']),
                                       part='val',
                                       logger=self.logger,
                                       true_k=20)
         # skip epoch 0 as this is the sanity check of pt lightning
         if self.current_epoch > 0: self.log_dict(dictionary=results)
 
-        avg_val_acc = torch.stack([x['val_acc'] for x in outputs]).mean()
-        print(f"\n\n___________________\n\naverage val accuracy is ---------> {avg_val_acc}\n\n")
-        self.log_dict({'avg_val_acc': avg_val_acc})
+        # avg_val_acc = torch.stack([x['val_acc'] for x in outputs]).mean()
+        # print(f"\n\n___________________\n\naverage val accuracy is ---------> {avg_val_acc}\n\n")
+        # self.log_dict({'avg_val_acc': avg_val_acc})
 
-
-
-        return {'avg_val_loss': avg_loss}
 
     def test_step(self, batch, batch_nb):
         input_ids = batch['input_ids']
@@ -177,7 +169,7 @@ class Experiment(pl.LightningModule):
         avg_loss = avg_loss.detach()
 
         scores = self.model.evaluate(eval_dataloader=self.test_dataloader(),
-                                     confusion=Evaluator(k=self.params['num_classes']),
+                                     confusion=Evaluator(k=self.model_params['architecture']['num_classes']),
                                      part='test', 
                                      logger=self.logger,
                                      true_k=10 if self.params['dataset'] != 'cifar20' else 20)
@@ -227,31 +219,31 @@ class Experiment(pl.LightningModule):
         
         if self.params['constrained_clustering']:
             print(f'_____constrained____ \n')
-            self.train_gen = DataLoader(dataset=self.train_data,
+            train_gen = DataLoader(dataset=self.train_data,
                                     batch_size=self.params['batch_size'],
                                     collate_fn=partial(constrained_collate_fn, params=self.params),
                                     num_workers=self.params['num_workers'],
                                     shuffle=True)
-            return self.train_gen
+            return train_gen
         else:
-            self.train_gen = DataLoader(dataset=self.train_data,
+            train_gen = DataLoader(dataset=self.train_data,
                                     batch_size=self.params['batch_size'],
                                     collate_fn=partial(supervised_collate_fn, params=self.params),
                                     num_workers=self.params['num_workers'],
                                     pin_memory=self.params['pin_memory'],
                                     shuffle=True)
-            return self.train_gen
+            return train_gen
 
     def val_dataloader(self):
 
-        self.val_gen = DataLoader(dataset=self.val_data,
+        val_gen = DataLoader(dataset=self.val_data,
                                   batch_size=self.params['batch_size'],
                                   collate_fn=partial(supervised_collate_fn, params=self.params),
                                   num_workers=self.params['num_workers'],
                                   pin_memory=self.params['pin_memory'],
                                   shuffle=True)
 
-        return self.val_gen
+        return val_gen
 
     def test_dataloader(self):
 

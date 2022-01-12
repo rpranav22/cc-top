@@ -62,10 +62,10 @@ class TextDataset(data.Dataset):
 
     @property
     def size(self):
-        # if self.part == 'train':
-        return self.c.shape[0]
-        # else:
-        #     return self.x.shape[0]
+        if self.part == 'train':
+            return self.c.shape[0]
+        else:
+            return self.x.shape[0]
 
     @property
     def num_classes(self):
@@ -128,8 +128,6 @@ class TextDataset(data.Dataset):
         if clean_text:
             x = self.clean_texts(x)
         constraints = pd.read_csv(f"{path}/C_{part}.csv")
-        # if is_tensor:
-        #     x = self.tokenize_text(x)
 
         return x, y , constraints
     

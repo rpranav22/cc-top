@@ -13,7 +13,7 @@ import tempfile
 
 
 class ConstrainedClustering(nn.Module):
-    def __init__(self, model, loss) -> None:
+    def __init__(self, model, loss, num_classes) -> None:
         super(ConstrainedClustering, self).__init__()
         # self.max_length = 512
         self.model_name = "bert-base-uncased"
@@ -22,7 +22,7 @@ class ConstrainedClustering(nn.Module):
         self.criterion = KCL() if loss == 'KCL' else MCL()
 
         self.pre_classifier = nn.Linear(self.model.bert.config.hidden_size, self.model.bert.config.hidden_size)
-        self.classifier = nn.Linear(self.model.bert.config.hidden_size, 20)
+        self.classifier = nn.Linear(self.model.bert.config.hidden_size, num_classes) 
         self.dropout = nn.Dropout(self.model.bert.config.hidden_dropout_prob)
         self.relu =  nn.ReLU()
 

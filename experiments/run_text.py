@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from logging import root
+import pdb
 import yaml
 import argparse
 import torch 
@@ -23,7 +24,7 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/newsgroup_supervised.yaml')
+                        default='configs/newsgroup_constrained.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')                        
     parser.add_argument('--batch_size', type=int, default=None,
@@ -51,7 +52,7 @@ def run_experiment(args):
 
     # compile model
     model = parse_model_config(config)
-
+    # print(model)
     # instantiate logger
     mlflow_logger = MLFlowLogger(experiment_name=config['logging_params']['experiment_name'], run_name=config['logging_params']['run_name'])
 
@@ -97,12 +98,11 @@ def run_experiment(args):
         # model.run_lda(train_data.x)
 
         # pytorch_profiler = torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CUDA], record_shapes=True, profile_memory=True)
-        pytorch_profiler = PyTorchProfiler(activities=[torch.profiler.ProfilerActivity.CUDA], dirpath='./supervised_profiler/', filename='trace_profiler', export_to_chrome=True, record_shapes=True, profile_memory=True)
+        pytorch_profiler = PyTorchProfiler(activities=[torch.profiler.ProfilerActivity.CUDA], dirpath='./supervised_profiler/', filename='new_profiler', export_to_chrome=True, record_shapes=True, profile_memory=True, use_cuda=True)
         # torch.profiler.tensorboard_trace_handler('./log/constrained_clustering')
         
         trainer = Trainer(
                         reload_dataloaders_every_epoch=False,
-                        min_epochs=params['epochs'],
                         log_every_n_steps=100,
                         gpus=1,
                         # amp_backend='native',
@@ -111,7 +111,7 @@ def run_experiment(args):
                         logger=mlflow_logger,
                         check_val_every_n_epoch=1,
                         callbacks=[LearningRateMonitor(logging_interval='step')],
-                        profiler = pytorch_profiler,
+                        # profiler = pytorch_profiler,
                         **config['trainer_params'] 
         )
 

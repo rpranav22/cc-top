@@ -8,9 +8,9 @@ from transformers import BertModel, BertConfig, RobertaConfig, RobertaModel
 
 class BertForClassification(nn.Module):
   
-    def __init__(self, hidden_size=768, hidden_dropout_prob=0.1, **kwargs):
+    def __init__(self, **kwargs):
         super(BertForClassification, self).__init__()
-        self.num_labels = kwargs['num_labels']
+        self.num_labels = kwargs['num_classes']
         self.config = BertConfig()
         self.bert = BertModel.from_pretrained(kwargs['base_model'], config=self.config)
 
@@ -19,8 +19,8 @@ class BertForClassification(nn.Module):
 
     def forward(self, input_ids, attention_mask, labels):
         
-        outputs = self.bert(input_ids=input_ids.to(torch.device('cuda')), \
-                         attention_mask=attention_mask.to(torch.device('cuda')))
+        outputs = self.bert(input_ids=input_ids, \
+                         attention_mask=attention_mask)
         # pdb.set_trace()
         
         return outputs

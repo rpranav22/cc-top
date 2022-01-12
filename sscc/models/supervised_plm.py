@@ -12,7 +12,7 @@ import pdb
 import tempfile
 
 class SupervisedPLM(nn.Module):
-    def __init__(self, model, loss) -> None:
+    def __init__(self, model, loss, num_classes) -> None:
         super(SupervisedPLM, self).__init__()
         # self.max_length = 512
         self.model_name = "bert-base-uncased"
@@ -20,7 +20,7 @@ class SupervisedPLM(nn.Module):
         self.model = model #.to(self.device)
 
         self.pre_classifier = nn.Linear(self.model.bert.config.hidden_size, self.model.bert.config.hidden_size)
-        self.classifier = nn.Linear(self.model.bert.config.hidden_size, 20)
+        self.classifier = nn.Linear(self.model.bert.config.hidden_size, num_classes)
         self.dropout = nn.Dropout(self.model.bert.config.hidden_dropout_prob)
         self.relu =  nn.ReLU()
 
@@ -40,7 +40,7 @@ class SupervisedPLM(nn.Module):
     
     def loss_function(self, out, batch, **kwargs):
         loss_fct = torch.nn.CrossEntropyLoss()
-        loss = loss_fct(out.view(-1, self.model.num_labels), batch['label'].to(torch.device('cuda')).view(-1))
+        loss = loss_fct(out.view(-1, self.model.num_labels), batch['label'])
 
         return {'loss': loss}
     
@@ -57,6 +57,7 @@ class SupervisedPLM(nn.Module):
         Returns:
             None
         """   
+        # pdb.set_trace()
         if part == 'test': y, pred = [], [] 
         for i, batch in enumerate(eval_dataloader):
             input_ids = batch['input_ids']
