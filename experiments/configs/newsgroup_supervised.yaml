@@ -27,7 +27,7 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 1
+    max_epochs: 2
     min_epochs: 1
     
 

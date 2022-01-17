@@ -59,7 +59,7 @@ def run_experiment(args):
     # for reproducibility
     torch.manual_seed(config['logging_params']['manual_seed'])
     np.random.seed(config['logging_params']['manual_seed'])
-
+ 
     # log all mlflow params
     for k, single_config in config.items():
         if k != 'search_space':
