@@ -31,6 +31,7 @@ MANIFEST
 experiments/data/
 experiments/logs/
 experiments/results/
+experiments/nohup.out
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -138,3 +139,4 @@ experiments/bertopic_v1
 experiments/cluster_probs_hdbscan_bertopic.pickle
 experiments/clustering_model.pickle
 experiments/x_test_embeddings.pickle
+experiments/nohup.out

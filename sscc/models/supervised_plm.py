@@ -44,7 +44,7 @@ class SupervisedPLM(nn.Module):
 
         return {'loss': loss}
     
-    def evaluate(self, eval_dataloader: Any, confusion: Any=Evaluator(20), part: str='val', logger: Any=None, true_k: int=20):
+    def evaluate(self, labels: Any, eval_dataloader: Any, confusion: Any=Evaluator(20), part: str='val', logger: Any=None, true_k: int=20):
         """Evaluate model on any dataloader during training and testings
 
         Args:
@@ -57,20 +57,19 @@ class SupervisedPLM(nn.Module):
         Returns:
             None
         """   
-        # pdb.set_trace()
         if part == 'test': y, pred = [], [] 
         for i, batch in enumerate(eval_dataloader):
-            input_ids = batch['input_ids']
-            label = batch['label']
-            attention_mask = batch['attention_mask']
+            # input_ids = batch['input_ids']
+            # label = batch['label']
+            # attention_mask = batch['attention_mask']
 
-            y_hat = self.forward(input_ids, attention_mask, label)
-            outs = F.softmax(y_hat, dim=1)
+            # with torch.no_grad():
+            #     outs = self.forward(input_ids, attention_mask, label)
 
-            confusion.add(outs, batch['label'])
+            confusion.add(batch, labels[i])
             if part == 'test':
-                y.extend(batch['label'].cpu().detach().numpy())
-                pred.append(outs.cpu().detach().numpy())
+                y.extend(labels[i].cpu().detach().numpy())
+                pred.append(batch.cpu().detach().numpy())
 
         if part == 'test': 
             pred = np.concatenate(pred, axis=0)
@@ -92,9 +91,11 @@ class SupervisedPLM(nn.Module):
                                          run_id=logger.run_id)
         if part == 'test':
             # log the test predictions
-            final_results = {f'yhat_p_{cl}': pred[:, cl] for cl in range(pred.shape[1])}
+            # pdb.set_trace()
+            # final_results = {f'yhat_p_{cl}': pred[:, cl] for cl in range(pred.shape[0])}
+            final_results = {}
             final_results['y'] = y
-            final_results['yhat'] = np.argmax(pred, 1)
+            final_results['yhat'] = np.argmax(pred, 0)
             final_results = pd.DataFrame(final_results)
             with tempfile.TemporaryDirectory() as tmp_dir:
                 storage_path = os.path.join(tmp_dir, 'test_preds.csv')
@@ -102,5 +103,4 @@ class SupervisedPLM(nn.Module):
                 logger.experiment.log_artifact(local_path=storage_path, run_id=logger.run_id)
 
         return eval_results
-    
     

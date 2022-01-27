@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from logging import root
 import pdb
 import yaml
 import argparse

@@ -55,7 +55,7 @@ class ConstrainedClustering(nn.Module):
 
         return {'loss': loss}
 
-    def evaluate(self, eval_dataloader: Any, confusion: Any=Evaluator(20), part: str='val', logger: Any=None, true_k: int=20):
+    def evaluate(self, labels: Any, eval_dataloader: Any, confusion: Any=Evaluator(20), part: str='val', current_epoch: int=0, logger: Any=None, true_k: int=20):
         """Evaluate model on any dataloader during training and testings
 
         Args:
@@ -70,16 +70,17 @@ class ConstrainedClustering(nn.Module):
         """   
         if part == 'test': y, pred = [], [] 
         for i, batch in enumerate(eval_dataloader):
-            input_ids = batch['input_ids']
-            label = batch['label']
-            attention_mask = batch['attention_mask']
+            # input_ids = batch['input_ids']
+            # label = batch['label']
+            # attention_mask = batch['attention_mask']
 
-            outs = self.forward(input_ids, attention_mask, label)
+            # with torch.no_grad():
+            #     outs = self.forward(input_ids, attention_mask, label)
 
-            confusion.add(outs, batch['label'])
+            confusion.add(batch, labels[i])
             if part == 'test':
-                y.extend(batch['label'].cpu().detach().numpy())
-                pred.append(outs.cpu().detach().numpy())
+                y.extend(labels[i].cpu().detach().numpy())
+                pred.append(batch.cpu().detach().numpy())
 
         if part == 'test': 
             pred = np.concatenate(pred, axis=0)
@@ -94,16 +95,18 @@ class ConstrainedClustering(nn.Module):
         eval_results.update({f'{part}_{key}': value for key, value in confusion.clusterscores().items()})
 
         if part != 'train':
-            epoch_string=f'{self.epoch}'.zfill(4)
-            logger.experiment.log_figure(figure=confusion.plot_confmat(title=f'{part} set, epoch {self.epoch}',
+            epoch_string=f'{current_epoch}'.zfill(4)
+            logger.experiment.log_figure(figure=confusion.plot_confmat(title=f'{part} set, epoch {current_epoch}',
                                                                        true_k=true_k),
                                          artifact_file=f'confmat_{part}_{epoch_string}.png',
                                          run_id=logger.run_id)
         if part == 'test':
             # log the test predictions
-            final_results = {f'yhat_p_{cl}': pred[:, cl] for cl in range(pred.shape[1])}
+            # pdb.set_trace()
+            # final_results = {f'yhat_p_{cl}': pred[:, cl] for cl in range(pred.shape[1])}
+            final_results = {}
             final_results['y'] = y
-            final_results['yhat'] = np.argmax(pred, 1)
+            final_results['yhat'] = np.argmax(pred, 0)
             final_results = pd.DataFrame(final_results)
             with tempfile.TemporaryDirectory() as tmp_dir:
                 storage_path = os.path.join(tmp_dir, 'test_preds.csv')

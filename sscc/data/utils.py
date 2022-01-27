@@ -138,8 +138,8 @@ def supervised_collate_fn(batch, params):
     return {
         #'text': note,
         'label': torch.tensor(targets, dtype=torch.long),
-        'input_ids': (encoding['input_ids'].to(torch.device('cuda'))),
-        'attention_mask': (encoding['attention_mask'].to(torch.device('cuda'))),
+        'input_ids': (encoding['input_ids']),
+        'attention_mask': (encoding['attention_mask']),
         'token_type_ids': (encoding['token_type_ids']),
         'train_target': (train_target)
     }

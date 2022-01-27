@@ -1,17 +1,17 @@
 model_params:
     model: 'constrained_clustering'
-    loss: MCL
+    loss: KCL
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 20
+        num_classes: 30
 
 exp_params:
     dataset: 'newsgroups'
     val_size: 2000
     batch_size: 32
     max_length: 256
-    num_constraints: 10000
+    num_constraints: 30000
     is_tensor: True
     constraintmatch: False
     constrained_clustering: True
@@ -26,11 +26,11 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 2
+    max_epochs: 50
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'cc_test'
-    run_name: 'testing_gpu'
+    experiment_name: 'cc_ch3'
+    run_name: 'long_run'

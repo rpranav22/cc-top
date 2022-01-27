@@ -62,7 +62,7 @@ class TextDataset(data.Dataset):
 
     @property
     def size(self):
-        if self.part == 'train':
+        if self.part == 'train' and self.constrained_clustering:
             return self.c.shape[0]
         else:
             return self.x.shape[0]
@@ -73,7 +73,7 @@ class TextDataset(data.Dataset):
 
     def __len__(self):
 
-        if self.part == 'train':
+        if self.part == 'train' and self.constrained_clustering:
             return self.c.shape[0]
         else:
             return len(self.x)

@@ -100,14 +100,22 @@ class Experiment(pl.LightningModule):
         self.log(name='train_step', value=self.train_step)
         self.train_step += 1
 
-        return loss
+        y_hat = y_hat.detach().cpu()
+        batch['label'] = batch['label'].detach().cpu()
+
+        return {'loss': loss['loss'], 'y_hat': y_hat, 'labels': batch['label']} #, 'train_batch': batch}
 
     def training_epoch_end(self, outputs):
         avg_loss = torch.stack([x['loss'] for x in outputs]).mean().to(torch.double)
         avg_loss = avg_loss.detach()
 
-        # results = self.model.evaluate(eval_dataloader=self.train_gen, confusion=Evaluator(k=self.model_params['architecture']['num_classes']), part='train')
-        # if self.current_epoch > 0: self.log_dict(results)
+        batch = [x['y_hat'] for x in outputs]
+
+        results = self.model.evaluate(eval_dataloader=batch, confusion=Evaluator(k=self.model_params['architecture']['num_classes'])
+                                        , labels=[x['labels'] for x in outputs]
+                                        , current_epoch=self.current_epoch
+                                        , part='train')
+        if self.current_epoch > 0: self.log_dict(results)
 
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
@@ -127,18 +135,21 @@ class Experiment(pl.LightningModule):
         val_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
         val_acc = torch.tensor(val_acc)
 
+        self.log("val_loss", loss['loss'])
 
-        return {'val_loss': loss   , 'val_acc': val_acc}
+        return {'val_loss': loss   , 'val_acc': val_acc, 'y_hat': y_hat, 'labels': batch['label']}
 
     def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x['val_loss']['loss'] for x in outputs]).mean().to(torch.double)
         avg_loss = avg_loss.detach()
 
-
+        batch = [x['y_hat'] for x in outputs]
         # validation performance
-        results = self.model.evaluate(eval_dataloader=self.val_dataloader(),
+        results = self.model.evaluate(eval_dataloader=batch,
+                                      labels = [x['labels'] for x in outputs],
                                       confusion=Evaluator(k=self.model_params['architecture']['num_classes']),
                                       part='val',
+                                      current_epoch=self.current_epoch,
                                       logger=self.logger,
                                       true_k=20)
         # skip epoch 0 as this is the sanity check of pt lightning
@@ -162,17 +173,19 @@ class Experiment(pl.LightningModule):
         a, y_hat = torch.max(y_hat, dim=1)
         test_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
 
-        return {'test_loss': loss, 'test_acc': torch.tensor(test_acc)}
+        return {'test_loss': loss, 'test_acc': torch.tensor(test_acc), 'y_hat': y_hat, 'labels': batch['label']}
     
     def test_epoch_end(self, outputs):
         avg_loss = torch.stack([x['test_loss']['loss'] for x in outputs]).mean().to(torch.double)
         avg_loss = avg_loss.detach()
 
-        scores = self.model.evaluate(eval_dataloader=self.test_dataloader(),
+        scores = self.model.evaluate(eval_dataloader=[x['y_hat'] for x in outputs],
+                                     labels=[x['labels'] for x in outputs],
                                      confusion=Evaluator(k=self.model_params['architecture']['num_classes']),
                                      part='test', 
+                                     current_epoch=self.current_epoch,
                                      logger=self.logger,
-                                     true_k=10 if self.params['dataset'] != 'cifar20' else 20)
+                                     true_k=20)
 
         for key, value in zip(scores.keys(), scores.values()): self.log(name=key, value=value)
 

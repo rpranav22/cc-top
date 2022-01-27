@@ -90,6 +90,7 @@ class Evaluator(object):
             r, assign = hungarian(mat)
         self.conf = self.conf[:,assign]
         self.gt_n_cluster = gt_n_cluster
+        # pdb.set_trace()
         return r, assign
 
     def show(self,width=6,row_labels=None,column_labels=None):
@@ -122,7 +123,7 @@ class Evaluator(object):
             for p in range(conf.size(1)):
                 if conf[c][p]>0:
                     pred_label[cur_idx:cur_idx+conf[c][p]].fill_(p)
-                cur_idx = cur_idx + conf[c][p];
+                cur_idx = cur_idx + conf[c][p]
         return gt_label,pred_label
 
     def clusterscores(self):
