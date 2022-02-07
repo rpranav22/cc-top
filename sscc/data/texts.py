@@ -127,6 +127,8 @@ class TextDataset(data.Dataset):
 
         if clean_text:
             x = self.clean_texts(x)
+        
+        part='train'
         constraints = pd.read_csv(f"{path}/C_{part}.csv")
 
         return x, y , constraints
@@ -172,13 +174,13 @@ class TextDataset(data.Dataset):
         
         # build constraints
         c_df_train = self.build_constraints(np.array(y_train).astype(np.int32), int(self.num_constraints), seed=self.seed)
-        c_df_val = self.build_constraints(np.array(y_val).astype(np.int32), int(self.num_constraints), seed=self.seed)
-        c_df_test = self.build_constraints(np.array(y_test).astype(np.int32), int(self.num_constraints), seed=self.seed)
+        # c_df_val = self.build_constraints(np.array(y_val).astype(np.int32), int(self.num_constraints), seed=self.seed)
+        # c_df_test = self.build_constraints(np.array(y_test).astype(np.int32), int(self.num_constraints), seed=self.seed)
 
         # store sampled constraints
         c_df_train.to_csv(f"{self.dataset_path}/C_train.csv")
-        c_df_val.to_csv(f"{self.dataset_path}/C_val.csv")
-        c_df_test.to_csv(f"{self.dataset_path}/C_test.csv")
+        # c_df_val.to_csv(f"{self.dataset_path}/C_val.csv")
+        # c_df_test.to_csv(f"{self.dataset_path}/C_test.csv")
 
         # store split data as pickle file
         with open(f"{self.dataset_path}/X_train", 'wb') as fp:

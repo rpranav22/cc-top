@@ -1,4 +1,5 @@
 import torch
+from sscc.models.bert_kmeans import BERTKmeans
 from sscc.models.constrained_clustering import ConstrainedClustering
 from sscc.models.lda import LDA
 from sscc.models.supervised_plm import SupervisedPLM
@@ -24,7 +25,8 @@ models = {'supervised': Supervised,
           'unsupervised': LDA,
           'supervised_plm': SupervisedPLM,
           'constrained_clustering': ConstrainedClustering,
-          'bertopic': BERTopic}
+          'bertopic': BERTopic,
+          'bert_kmeans': BERTKmeans}
 
 architectures = {'lenet': LeNet,
                  'vgg': VGG,
@@ -36,6 +38,8 @@ architectures = {'lenet': LeNet,
 def parse_architecture_config(config):
     arch_params = config.get('model_params').get('architecture')
     #TODO: integrate the gansbeke resnet18 more slick
+    if arch_params['arch'] == 'bert_kmeans':
+        return None
     architecture = architectures[arch_params.get('arch')](**arch_params)
 
     return architecture

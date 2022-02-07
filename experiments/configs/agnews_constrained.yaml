@@ -4,15 +4,15 @@ model_params:
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 20
+        num_classes: 30
 
 exp_params:
-    dataset: 'newsgroups'
-    true_num_classes: 20
-    val_size: 2000
-    batch_size: 32
-    max_length: 256
-    num_constraints: 50000
+    dataset: 'agnews'
+    true_num_classes: 4
+    val_size: 8000
+    batch_size: 128
+    max_length: 64
+    num_constraints: 30000
     is_tensor: True
     constraintmatch: False
     constrained_clustering: True
@@ -33,5 +33,5 @@ trainer_params:
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'cc_ch2'
-    run_name: 'newsgroup_mcl_50k'
+    experiment_name: 'cc_ch3'
+    run_name: 'agnews_mcl_30k'

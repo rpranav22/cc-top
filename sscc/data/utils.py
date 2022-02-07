@@ -7,6 +7,7 @@ from sklearn.metrics import accuracy_score
 from torch.utils.data.dataloader import default_collate
 from transformers.file_utils import is_tf_available, is_torch_available
 from transformers import BertTokenizerFast, RobertaTokenizerFast
+from sscc.data.agnews import agnews
 from sscc.data.cifar10 import CIFAR10, transforms_cifar10_train, transforms_cifar10_test
 from sscc.data.cifar20 import CIFAR20
 from sscc.data.mnist import MNIST, transforms_mnist_train, transforms_mnist_test
@@ -14,6 +15,7 @@ from sscc.data.fashionmnist import FASHIONMNIST, transforms_fmnist_train, transf
 from sscc.data.yaleb import YaleB
 from sscc.data.yalebextend import YaleBExt, transforms_yaleb_train
 from sscc.data.newsgroups import newsgroups
+from sscc.data.dbpedia import dbpedia
 
 tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased', do_lower_case=True)
 # tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base', do_lower_case=True)
@@ -266,6 +268,31 @@ def get_data(root, params, log_params, part):
                        remove_stopwords=['remove_stopwords'],
                        max_length = params['max_length'],
                        k=params['k'])
+    
+    elif params['dataset'] == 'agnews':
+        data = agnews(root=root,
+                       part=part,
+                       val_size=params['val_size'],
+                       num_constraints=params['num_constraints'],
+                       is_tensor=params['is_tensor'],
+                       clean_text=params['clean_text'],
+                       constrained_clustering=params['constrained_clustering'],
+                       remove_stopwords=['remove_stopwords'],
+                       max_length = params['max_length'],
+                       k=params['k'])
+
+    elif params['dataset'] == 'dbpedia':
+        data = dbpedia(root=root,
+                       part=part,
+                       val_size=params['val_size'],
+                       num_constraints=params['num_constraints'],
+                       is_tensor=params['is_tensor'],
+                       clean_text=params['clean_text'],
+                       constrained_clustering=params['constrained_clustering'],
+                       remove_stopwords=['remove_stopwords'],
+                       max_length = params['max_length'],
+                       k=params['k'])
+
     elif params['dataset'] == 'cifar20':
         data = CIFAR20(root=root,
                        part=part,

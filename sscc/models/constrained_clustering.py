@@ -106,7 +106,7 @@ class ConstrainedClustering(nn.Module):
             # final_results = {f'yhat_p_{cl}': pred[:, cl] for cl in range(pred.shape[1])}
             final_results = {}
             final_results['y'] = y
-            final_results['yhat'] = np.argmax(pred, 0)
+            final_results['yhat'] = np.argmax(pred, 1)
             final_results = pd.DataFrame(final_results)
             with tempfile.TemporaryDirectory() as tmp_dir:
                 storage_path = os.path.join(tmp_dir, 'test_preds.csv')

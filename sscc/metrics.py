@@ -32,8 +32,9 @@ class Evaluator(object):
     def add(self, output, target):
         output = output.squeeze()
         target = target.squeeze()
-        assert output.size(0) == target.size(0), \
-                'number of targets and outputs do not match'
+        # pdb.set_trace()
+        # assert output.size(0) == target.size(0), \
+        #         'number of targets and outputs do not match'
         if output.ndimension()>1: #it is the raw probabilities over classes
             assert output.size(1) == self.conf.size(0), \
                 'number of outputs does not match size of confusion matrix'

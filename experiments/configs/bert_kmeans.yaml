@@ -1,21 +1,21 @@
 model_params:
-    model: 'constrained_clustering'
-    loss: MCL
+    model: 'bert_kmeans'
+    loss: None
     architecture:
-        arch: bert_classifier
-        base_model: 'bert-base-uncased'
+        arch: bert_kmeans
+        base_model: 'distiluse-base-multilingual-cased-v2'
         num_classes: 20
 
 exp_params:
     dataset: 'newsgroups'
     true_num_classes: 20
     val_size: 2000
-    batch_size: 32
-    max_length: 256
-    num_constraints: 50000
+    batch_size: 128
+    max_length: 64
+    num_constraints: 30000
     is_tensor: True
     constraintmatch: False
-    constrained_clustering: True
+    constrained_clustering: False
     num_workers: 0
     pin_memory: False
     learning_rate: 0.00001
@@ -33,5 +33,5 @@ trainer_params:
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'cc_ch2'
-    run_name: 'newsgroup_mcl_50k'
+    experiment_name: 'ch1_unsupervised'
+    run_name: 'newsgroup_bert-kmeans'

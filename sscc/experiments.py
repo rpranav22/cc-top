@@ -131,13 +131,13 @@ class Experiment(pl.LightningModule):
         loss = self.model.loss_function(y_hat, batch, **self.params)
 
         # acc
-        a, y_hat = torch.max(y_hat, dim=1)
-        val_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
-        val_acc = torch.tensor(val_acc)
+        # a, y_hat = torch.max(y_hat, dim=1)
+        # val_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
+        # val_acc = torch.tensor(val_acc)
 
         self.log("val_loss", loss['loss'])
 
-        return {'val_loss': loss   , 'val_acc': val_acc, 'y_hat': y_hat, 'labels': batch['label']}
+        return {'val_loss': loss , 'y_hat': y_hat, 'labels': batch['label']}
 
     def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x['val_loss']['loss'] for x in outputs]).mean().to(torch.double)
@@ -151,7 +151,7 @@ class Experiment(pl.LightningModule):
                                       part='val',
                                       current_epoch=self.current_epoch,
                                       logger=self.logger,
-                                      true_k=20)
+                                      true_k=self.params['true_num_classes'])
         # skip epoch 0 as this is the sanity check of pt lightning
         if self.current_epoch > 0: self.log_dict(dictionary=results)
 
@@ -170,10 +170,10 @@ class Experiment(pl.LightningModule):
         # loss
         loss = self.model.loss_function(y_hat, batch, **self.params)
 
-        a, y_hat = torch.max(y_hat, dim=1)
-        test_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
+        # a, y_hat = torch.max(y_hat, dim=1)
+        # test_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
 
-        return {'test_loss': loss, 'test_acc': torch.tensor(test_acc), 'y_hat': y_hat, 'labels': batch['label']}
+        return {'test_loss': loss, 'y_hat': y_hat, 'labels': batch['label']}
     
     def test_epoch_end(self, outputs):
         avg_loss = torch.stack([x['test_loss']['loss'] for x in outputs]).mean().to(torch.double)
@@ -185,7 +185,7 @@ class Experiment(pl.LightningModule):
                                      part='test', 
                                      current_epoch=self.current_epoch,
                                      logger=self.logger,
-                                     true_k=20)
+                                     true_k=self.params['true_num_classes'])
 
         for key, value in zip(scores.keys(), scores.values()): self.log(name=key, value=value)
 
@@ -207,6 +207,7 @@ class Experiment(pl.LightningModule):
         # Calculate total steps
         tb_size = self.params['batch_size'] #* max(1, self.trainer.gpus)
         ab_size = self.trainer.accumulate_grad_batches * float(self.trainer.max_epochs)
+
         self.total_steps = (len(train_loader.dataset) // tb_size) // ab_size
 
     def configure_optimizers(self):

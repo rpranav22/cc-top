@@ -1,37 +1,38 @@
 model_params:
-    model: 'constrained_clustering'
-    loss: MCL
+    model: 'supervised_plm'
+    loss: None
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 20
+        num_classes: 4
+        
 
 exp_params:
-    dataset: 'newsgroups'
-    true_num_classes: 20
-    val_size: 2000
-    batch_size: 32
-    max_length: 256
-    num_constraints: 50000
+    dataset: 'agnews'
+    val_size: 8000
+    true_num_classes: 4
+    batch_size: 512
+    max_length: 32
     is_tensor: True
     constraintmatch: False
-    constrained_clustering: True
+    constrained_clustering: False
     num_workers: 0
     pin_memory: False
-    learning_rate: 0.00001
+    learning_rate: 0.00002
     adam_epsilon: 0.00000001
     weight_decay: 0.01
     warmup_steps: 0
+    num_constraints: 10000
     clean_text: False
     remove_stopwords: False
     k: NULL
     
 trainer_params:
-    max_epochs: 10
+    max_epochs: 3
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'cc_ch2'
-    run_name: 'newsgroup_mcl_50k'
+    experiment_name: 'supervised_plm'
+    run_name: 'agnews_lr2'

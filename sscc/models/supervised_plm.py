@@ -44,7 +44,7 @@ class SupervisedPLM(nn.Module):
 
         return {'loss': loss}
     
-    def evaluate(self, labels: Any, eval_dataloader: Any, confusion: Any=Evaluator(20), part: str='val', logger: Any=None, true_k: int=20):
+    def evaluate(self, labels: Any, eval_dataloader: Any, confusion: Any=Evaluator(20), part: str='val',current_epoch: int=0, logger: Any=None, true_k: int=20):
         """Evaluate model on any dataloader during training and testings
 
         Args:
@@ -84,8 +84,8 @@ class SupervisedPLM(nn.Module):
         eval_results.update({f'{part}_{key}': value for key, value in confusion.clusterscores().items()})
 
         if part != 'train':
-            epoch_string=f'{self.epoch}'.zfill(4)
-            logger.experiment.log_figure(figure=confusion.plot_confmat(title=f'{part} set, epoch {self.epoch}',
+            epoch_string=f'{current_epoch}'.zfill(4)
+            logger.experiment.log_figure(figure=confusion.plot_confmat(title=f'{part} set, epoch {current_epoch}',
                                                                        true_k=true_k),
                                          artifact_file=f'confmat_{part}_{epoch_string}.png',
                                          run_id=logger.run_id)
@@ -95,7 +95,7 @@ class SupervisedPLM(nn.Module):
             # final_results = {f'yhat_p_{cl}': pred[:, cl] for cl in range(pred.shape[0])}
             final_results = {}
             final_results['y'] = y
-            final_results['yhat'] = np.argmax(pred, 0)
+            final_results['yhat'] = np.argmax(pred, 1)
             final_results = pd.DataFrame(final_results)
             with tempfile.TemporaryDirectory() as tmp_dir:
                 storage_path = os.path.join(tmp_dir, 'test_preds.csv')

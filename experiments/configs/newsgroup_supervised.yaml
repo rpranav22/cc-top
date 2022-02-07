@@ -10,6 +10,7 @@ model_params:
 exp_params:
     dataset: 'newsgroups'
     val_size: 2000
+    true_num_classes: 20
     batch_size: 64
     max_length: 256
     is_tensor: True
@@ -27,11 +28,11 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 1
+    max_epochs: 3
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'supervised_test'
-    run_name: 'v3'
+    experiment_name: 'supervised_plm'
+    run_name: 'newgroup_lr2'

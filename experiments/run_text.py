@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from cgi import test
 import pdb
 import yaml
 import argparse
@@ -15,6 +16,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor, GPUStatsMonitor, De
 from pytorch_lightning.profiler import PyTorchProfiler
 import torch.profiler
 from sscc.experiments import Experiment, save_dict_as_yaml_mlflow
+from sscc.metrics import Evaluator
 from sscc.utils import *
 
 def parse_args():
@@ -23,7 +25,7 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/newsgroup_constrained.yaml')
+                        default='configs/bert_kmeans.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')                        
     parser.add_argument('--batch_size', type=int, default=None,
@@ -77,6 +79,30 @@ def run_experiment(args):
         print(topic_model.get_topic_info())
         topic_model.save("bertopic_v1")
     
+    elif config['model_params']['model'] == 'bert_kmeans':
+        print("not lightning")
+        train_data = get_data(root='./data', params=params, log_params=None, part='train')
+        print(f"type: {type(train_data.x)}, length: {len(train_data.x)}")
+        cluster_assignments = model.fit_model(train_data.x)
+        train_results = model.evaluate(batch=torch.tensor(cluster_assignments),
+                                      labels = torch.tensor(train_data.y),
+                                      confusion=Evaluator(k=config['model_params']['architecture']['num_classes']),
+                                      part='train',
+                                      logger=mlflow_logger,
+                                      true_k=params['true_num_classes'])
+
+        test_data = get_data(root='./data', params=params, log_params=None, part='test')
+        print(f"type: {type(test_data.x)}, length: {len(test_data.x)}")
+        test_cluster_assignments = model.fit_model(test_data.x)
+        test_results = model.evaluate(batch=torch.tensor(test_cluster_assignments),
+                                      labels = torch.tensor(test_data.y),
+                                      confusion=Evaluator(k=config['model_params']['architecture']['num_classes']),
+                                      part='test',
+                                      logger=mlflow_logger,
+                                      true_k=params['true_num_classes'])
+        
+        # pdb.set_trace()
+
     else:
         print("Using LightningModule")
 
@@ -93,6 +119,7 @@ def run_experiment(args):
         # val_data = get_data(root='./data', params=params, log_params=None, part='val')
 
         print("Primer: ", len(experiment.train_data), type(experiment.train_data.x), len(experiment.train_data.c), len(experiment.test_data.y), len(experiment.test_data.c), len(experiment.val_data.y), len(experiment.val_data.c))
+        print(f'sample data: {experiment.train_data.x[0]} \t label: {experiment.train_data.y[0]}')
         print(f"model: {type(experiment.model)}")
         # model.run_lda(train_data.x)
 
