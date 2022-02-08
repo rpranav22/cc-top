@@ -56,7 +56,7 @@ class BERTKmeans():
 
     def fit_model(self, X_train):
         corpus_embeddings = self.embedder.encode(X_train)
-
+        # pdb.set_trace()
         self.clustering_model.fit(corpus_embeddings)
 
         cluster_assignment = self.clustering_model.labels_

@@ -4,11 +4,11 @@ model_params:
     architecture:
         arch: bert_kmeans
         base_model: 'distiluse-base-multilingual-cased-v2'
-        num_classes: 20
+        num_classes: 4
 
 exp_params:
-    dataset: 'newsgroups'
-    true_num_classes: 20
+    dataset: 'agnews'
+    true_num_classes: 4
     val_size: 2000
     batch_size: 128
     max_length: 64
@@ -34,4 +34,4 @@ trainer_params:
 logging_params:
     manual_seed: 1337
     experiment_name: 'ch1_unsupervised'
-    run_name: 'newsgroup_bert-kmeans'
+    run_name: 'agnews_bert-kmeans'

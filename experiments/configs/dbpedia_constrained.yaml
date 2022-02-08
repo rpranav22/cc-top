@@ -4,7 +4,7 @@ model_params:
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 30
+        num_classes: 14
 
 exp_params:
     dataset: 'dbpedia'
@@ -12,7 +12,7 @@ exp_params:
     val_size: 20000
     batch_size: 128
     max_length: 64
-    num_constraints: 30000
+    num_constraints: 50000
     is_tensor: True
     constraintmatch: False
     constrained_clustering: True
@@ -27,11 +27,11 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 10
+    max_epochs: 20
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'cc_ch3'
+    experiment_name: 'cc_ch2'
     run_name: 'dbpedia_kcl_30k'

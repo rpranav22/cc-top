@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from cgi import test
 import pdb
+from unittest import TestResult
 import yaml
 import argparse
 import torch 
@@ -25,9 +26,11 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/bert_kmeans.yaml')
+                        default='configs/dbpedia_constrained.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
-                        help='amount of a priori classes')                        
+                        help='amount of a priori classes')    
+    parser.add_argument('--num_constraints', type=int, default=None,
+                        help='amount of constraints')                      
     parser.add_argument('--batch_size', type=int, default=None,
                         help="batch size")                    
     parser.add_argument('--run_name', type=str, default=None,
@@ -90,6 +93,7 @@ def run_experiment(args):
                                       part='train',
                                       logger=mlflow_logger,
                                       true_k=params['true_num_classes'])
+        mlflow_logger.log_metrics(train_results)
 
         test_data = get_data(root='./data', params=params, log_params=None, part='test')
         print(f"type: {type(test_data.x)}, length: {len(test_data.x)}")
@@ -100,7 +104,7 @@ def run_experiment(args):
                                       part='test',
                                       logger=mlflow_logger,
                                       true_k=params['true_num_classes'])
-        
+        mlflow_logger.log_metrics(test_results)
         # pdb.set_trace()
 
     else:

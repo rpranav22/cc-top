@@ -1,4 +1,5 @@
 import re
+import shutil
 from typing import List
 import numpy as np
 import pandas as pd
@@ -128,6 +129,7 @@ class TextDataset(data.Dataset):
         if clean_text:
             x = self.clean_texts(x)
         
+        # to avoid building constraints for the val and test set because it takes very long
         part='train'
         constraints = pd.read_csv(f"{path}/C_{part}.csv")
 
@@ -206,7 +208,14 @@ class TextDataset(data.Dataset):
                 print('path exists but empty af')
                 return True
             else:
-                return False
+                if self.part=='train':
+                    shutil.rmtree(self.dataset_path)
+                    print(f'deleteing the contents of this path {self.dataset_path} and rebuilding dataset with constraints.')
+                    os.makedirs(self.dataset_path)
+                    return True
+                else:
+                    print(f"checking for {self.part} here. If exists, not building again")
+                    return False
 
     def clean_texts(self, data):
         """
