@@ -12,37 +12,6 @@ from sscc.metrics import Evaluator
 
 # embedder = SentenceTransformer('distiluse-base-multilingual-cased-v2')
 
-# # Corpus with example sentences
-# corpus = ['A man is eating food.',
-#           'A man is eating a piece of bread.',
-#           'A man is eating pasta.',
-#           'The girl is carrying a baby.',
-#           'The baby is carried by the woman',
-#           'A man is riding a horse.',
-#           'A man is riding a white horse on an enclosed ground.',
-#           'A monkey is playing drums.',
-#           'Someone in a gorilla costume is playing a set of drums.',
-#           'A cheetah is running behind its prey.',
-#           'A cheetah chases prey on across a field.'
-#           ]
-# corpus_embeddings = embedder.encode(corpus)
-# pdb.set_trace()
-# # Perform kmean clustering
-# num_clusters = 5
-# clustering_model = KMeans(n_clusters=num_clusters)
-# clustering_model.fit(corpus_embeddings)
-# cluster_assignment = clustering_model.labels_
-
-# clustered_sentences = [[] for i in range(num_clusters)]
-# for sentence_id, cluster_id in enumerate(cluster_assignment):
-#     clustered_sentences[cluster_id].append(corpus[sentence_id])
-
-# for i, cluster in enumerate(clustered_sentences):
-#     print("Cluster ", i+1)
-#     print(cluster)
-#     print("")
-
-
 
 class BERTKmeans():
 
@@ -50,17 +19,32 @@ class BERTKmeans():
         self.model = model
         self.num_classes = num_classes
         self.clustering_model = KMeans(n_clusters=self.num_classes)
-        # self.base_model = kwargs['architecture']['base_model']
-        self.embedder = SentenceTransformer('distiluse-base-multilingual-cased-v2')
+
+        # 'distiluse-base-multilingual-cased-v2'
+
+        
+        print(kwargs)
+        self.sentence_transformer = kwargs['sentence_transformer']
+        self.base_model = kwargs['base_model']
+        if self.sentence_transformer:
+            self.embedder = SentenceTransformer(self.base_model)
+
 
 
     def fit_model(self, X_train):
-        corpus_embeddings = self.embedder.encode(X_train)
-        # pdb.set_trace()
+        if self.sentence_transformer:
+            print('using sentence_transformer')
+            corpus_embeddings = self.embedder.encode(X_train)
+
         self.clustering_model.fit(corpus_embeddings)
 
         cluster_assignment = self.clustering_model.labels_
         return cluster_assignment
+    
+    def predict(self, batch):
+        if self.sentence_transformer:
+            batch_embeddings = self.embedder.encode(batch)
+        return self.clustering_model.predict(batch_embeddings)
        
 
 

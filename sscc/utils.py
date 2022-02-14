@@ -46,9 +46,11 @@ def parse_architecture_config(config):
 
 def parse_model_config(config):
     model_param = config.get('model_params')
+    exp_params = config.get('exp_params')
+    model_param['architecture']['max_length'] = exp_params['max_length']
     model = models[model_param['model']]
     architecture = parse_architecture_config(config)
-    model_instance = model(architecture, model_param['loss'], model_param['architecture']['num_classes'])
+    model_instance = model(architecture, model_param['loss'], **model_param['architecture'])
     print(f"loss: {model_param['loss']}")
     # model_instance = model()
 

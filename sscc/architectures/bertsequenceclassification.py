@@ -17,7 +17,7 @@ class BertForClassification(nn.Module):
         
         # nn.init.xavier_normal_(self.classifier.weight)
 
-    def forward(self, input_ids, attention_mask, labels):
+    def forward(self, input_ids, attention_mask, label):
         
         outputs = self.bert(input_ids=input_ids, \
                          attention_mask=attention_mask)

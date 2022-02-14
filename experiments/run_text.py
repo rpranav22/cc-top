@@ -26,7 +26,7 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/dbpedia_constrained.yaml')
+                        default='configs/dbpedia_topic-discovery.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')    
     parser.add_argument('--num_constraints', type=int, default=None,
@@ -97,7 +97,7 @@ def run_experiment(args):
 
         test_data = get_data(root='./data', params=params, log_params=None, part='test')
         print(f"type: {type(test_data.x)}, length: {len(test_data.x)}")
-        test_cluster_assignments = model.fit_model(test_data.x)
+        test_cluster_assignments = model.predict(test_data.x)
         test_results = model.evaluate(batch=torch.tensor(test_cluster_assignments),
                                       labels = torch.tensor(test_data.y),
                                       confusion=Evaluator(k=config['model_params']['architecture']['num_classes']),
@@ -109,6 +109,16 @@ def run_experiment(args):
 
     else:
         print("Using LightningModule")
+
+        if 'model_uri' in config['model_params']:
+            print('topic discovery is happening')
+            if config['model_params']['model_uri']:
+                model_uri = config['model_params']['model_uri']
+                print(model_uri)
+                model.load_state_dict(torch.load(model_uri)['state_dict'])
+                # for param in model.model.bert.parameters():
+                #     param.requires_grad=False
+                # pdb.set_trace()
 
         experiment = Experiment(model,
                                 params=config['exp_params'],
@@ -122,7 +132,7 @@ def run_experiment(args):
         # train_data = get_data(root='./data', params=params, log_params=None, part='train')
         # val_data = get_data(root='./data', params=params, log_params=None, part='val')
 
-        print("Primer: ", len(experiment.train_data), type(experiment.train_data.x), len(experiment.train_data.c), len(experiment.test_data.y), len(experiment.test_data.c), len(experiment.val_data.y), len(experiment.val_data.c))
+        print(f"Primer:  train data size:{len(experiment.train_data)}, train_constraints: {len(experiment.train_data.c)}, test_size:{len(experiment.test_data.y)}, test_con: {len(experiment.test_data.c)}, val_size:{len(experiment.val_data.y)}, val_con: {len(experiment.val_data.c)}")
         print(f'sample data: {experiment.train_data.x[0]} \t label: {experiment.train_data.y[0]}')
         print(f"model: {type(experiment.model)}")
         # model.run_lda(train_data.x)

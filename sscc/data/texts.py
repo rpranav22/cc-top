@@ -48,7 +48,6 @@ class TextDataset(data.Dataset):
         self.root = root
         self.part = part
         self.dataset_path = os.path.join(self.root, self.base_folder)
-        # self.transform = transform
         self.model_name = "bert-base-uncased"
         self.tokenizer = BertTokenizerFast.from_pretrained(self.model_name, do_lower_case=True)
         self.test_size = test_size
@@ -128,7 +127,8 @@ class TextDataset(data.Dataset):
 
         if clean_text:
             x = self.clean_texts(x)
-        
+    
+
         # to avoid building constraints for the val and test set because it takes very long
         part='train'
         constraints = pd.read_csv(f"{path}/C_{part}.csv")
@@ -138,6 +138,26 @@ class TextDataset(data.Dataset):
     def tokenize_text(self, texts):
         return self.tokenizer.encode_plus(texts, truncation=True, padding=True, max_length=self.max_length)
 
+    def divide_dataset_by_classes(self, x, y, excluded_classes=None):
+        
+        print("\n\n\ntrying topic discovery initial size: {}\n\n\n".format(len(y)))
+        excluded_classes = list(range(10))
+        print('\nexcluded classes: ', excluded_classes)
+        # excluded_classes = [10,11,12,13]
+        labelled_set = []
+        unlabelled_set = []
+
+        for x, y in zip(x,y):
+            if y in excluded_classes:
+                unlabelled_set.append((x,y))
+            else:
+                labelled_set.append((x,y))
+
+        x,y = zip(*labelled_set)
+
+        print(f'final size: {len(y)}')
+        return x, y
+    
     def _split_and_save(self, x_train, y_train, y_test=None, x_test=None):
         """
         helper method to split train/test data into train/val/test data and store them as .npy arrays
@@ -174,6 +194,9 @@ class TextDataset(data.Dataset):
                                                             random_state=self.seed,
                                                             stratify=y_train)
         
+        # x_train, y_train = self.divide_dataset_by_classes(x_train, y_train)
+        # x_val, y_val = self.divide_dataset_by_classes(x_val, y_val)
+
         # build constraints
         c_df_train = self.build_constraints(np.array(y_train).astype(np.int32), int(self.num_constraints), seed=self.seed)
         # c_df_val = self.build_constraints(np.array(y_val).astype(np.int32), int(self.num_constraints), seed=self.seed)

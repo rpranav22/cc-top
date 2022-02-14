@@ -37,7 +37,7 @@ class Experiment(pl.LightningModule):
         self.new_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = model
         self.model_params = model_params
-        self.model.epoch = self.current_epoch
+        # self.model.epoch = self.current_epoch
         self.params = params
         self.log_params = log_params
         self.trainer_params = trainer_params
