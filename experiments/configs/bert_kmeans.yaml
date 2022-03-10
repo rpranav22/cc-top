@@ -5,11 +5,11 @@ model_params:
         arch: 'bert_kmeans'
         sentence_transformer: True
         base_model: 'bert-base-uncased'
-        num_classes: 20
+        num_classes: 4
 
 exp_params:
-    dataset: 'newsgroups'
-    true_num_classes: 20
+    dataset: 'agnews'
+    true_num_classes: 4
     val_size: 2000
     batch_size: 128
     max_length: 64
@@ -35,4 +35,4 @@ trainer_params:
 logging_params:
     manual_seed: 1337
     experiment_name: 'ch1_unsupervised'
-    run_name: 'newsgroup_bert-kmeans'
+    run_name: 'agnews_bert-kmeans'

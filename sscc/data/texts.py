@@ -178,7 +178,7 @@ class TextDataset(data.Dataset):
         # folds = 5
         # for fold in range(folds):
         #     # reset seed
-        #     np.random.seed(self.seed)
+        np.random.seed(self.seed)
 
         
         # os.mkdir(dataset_path)
@@ -325,7 +325,7 @@ class TextDataset(data.Dataset):
         ml_ind1, ml_ind2, cl_ind1, cl_ind2 = np.array(ml_ind1), np.array(ml_ind2), np.array(cl_ind1), np.array(cl_ind2)
         # apply transitivity closure of ML and entailment of CL
         # fills the underlying constraint graph and makes sure we use all information that we have
-        ml_ind1, ml_ind2, cl_ind1, cl_ind2 = self.transitive_closure(ml_ind1, ml_ind2, cl_ind1, cl_ind2, len(y))
+        # ml_ind1, ml_ind2, cl_ind1, cl_ind2 = self.transitive_closure(ml_ind1, ml_ind2, cl_ind1, cl_ind2, len(y))
 
         total_constraints = ml_ind1.shape[0] + cl_ind1.shape[0]
 

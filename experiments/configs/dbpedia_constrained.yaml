@@ -1,10 +1,10 @@
 model_params:
     model: 'constrained_clustering'
-    loss: MCL
+    loss: KCL
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 14
+        num_classes: 100
 
 exp_params:
     dataset: 'dbpedia'
@@ -18,20 +18,20 @@ exp_params:
     constrained_clustering: True
     num_workers: 0
     pin_memory: False
-    learning_rate: 0.00002
+    learning_rate: 0.00001
     adam_epsilon: 0.00000001
-    weight_decay: 0.01
+    weight_decay: 0.0
     warmup_steps: 0
     clean_text: False
     remove_stopwords: False
     k: NULL
     
 trainer_params:
-    max_epochs: 60
+    max_epochs: 100
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'cc_ch2'
-    run_name: 'dbpedia_mcl_30k'
+    experiment_name: 'chapter2'
+    run_name: 'dbpedia_kcl_10k'

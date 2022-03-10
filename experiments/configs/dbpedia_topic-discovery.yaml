@@ -13,7 +13,7 @@ exp_params:
     val_size: 20000
     batch_size: 128
     max_length: 64
-    num_constraints: 10000
+    num_constraints: 50000
     is_tensor: True
     constraintmatch: False
     constrained_clustering: True
@@ -35,4 +35,4 @@ trainer_params:
 logging_params:
     manual_seed: 1337
     experiment_name: 'topic-discovery'
-    run_name: 'dbpedia_kcl_50k-10L-4UL_10k-all'
+    run_name: 'dbpedia_kcl_50k-10L-4UL_50k-all'

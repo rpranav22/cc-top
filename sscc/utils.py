@@ -62,6 +62,13 @@ def update_config(config, args):
             continue
 
         for key in config.keys():
+            for k in config[key].keys():
+                if isinstance(config[key][k], dict):
+                    print('config key', config[key][k])
+                    if config[key][k].__contains__(name):
+                        config[key][k][name] = value
+                        continue
+
             if config[key].__contains__(name):
                 config[key][name] = value
 

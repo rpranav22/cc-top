@@ -130,10 +130,6 @@ class Experiment(pl.LightningModule):
         # loss
         loss = self.model.loss_function(y_hat, batch, **self.params)
 
-        # acc
-        # a, y_hat = torch.max(y_hat, dim=1)
-        # val_acc = self.metric(y_hat.cpu(), label.cpu())['accuracy']
-        # val_acc = torch.tensor(val_acc)
 
         self.log("val_loss", loss['loss'])
 
@@ -205,17 +201,24 @@ class Experiment(pl.LightningModule):
         train_loader = self.train_dataloader()
 
         # Calculate total steps
-        tb_size = self.params['batch_size'] #* max(1, self.trainer.gpus)
-        ab_size = self.trainer.accumulate_grad_batches * float(self.trainer.max_epochs)
+        tb_size = self.params['batch_size'] * max(1, self.trainer.gpus)
+        # ab_size = self.trainer.accumulate_grad_batches * float(self.trainer.max_epochs)
+        ab_size = tb_size * self.trainer.accumulate_grad_batches
 
-        self.total_steps = (len(train_loader.dataset) // tb_size) // ab_size
+        self.total_steps = int((len(train_loader.dataset) / ab_size) * float(self.trainer.max_epochs))
+
+        # total_devices = self.trainer.n_gpus * self.trainer.n_nodes
+        # train_batches = len(self.train_dataloader()) // total_devices
+        # self.train_steps = (self.trainer.epochs * train_batches) // self.trainer.accumulate_grad_batches
+        print(f"estimated number of training steps is {self.total_steps} ")
 
     def configure_optimizers(self):
         """Prepare optimizer and schedule (linear warmup and decay)"""
         model = self.model
     
-        optimizer = AdamW(model.parameters(), 
+        optimizer = optim.AdamW(model.parameters(), 
                             lr=self.params['learning_rate'], 
+                            weight_decay=self.params['weight_decay'],
                             eps=self.params['adam_epsilon'])
 
        

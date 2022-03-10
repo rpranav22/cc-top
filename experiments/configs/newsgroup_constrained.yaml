@@ -27,11 +27,11 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 10
+    max_epochs: 60
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'cc_ch2'
+    experiment_name: 'chapter2'
     run_name: 'newsgroup_mcl_50k'

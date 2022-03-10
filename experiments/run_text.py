@@ -26,15 +26,21 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/dbpedia_topic-discovery.yaml')
+                        default='configs/newsgroup_constrained.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')    
     parser.add_argument('--num_constraints', type=int, default=None,
-                        help='amount of constraints')                      
+                        help='amount of constraints')     
     parser.add_argument('--batch_size', type=int, default=None,
-                        help="batch size")                    
+                        help="batch size")                  
+    parser.add_argument('--max_epochs', type=int, default=None,
+                        help="max epochs size")   
+    parser.add_argument('--loss', type=str, default=None,
+                        help="loss function")                   
     parser.add_argument('--run_name', type=str, default=None,
                         help='name of the run')
+    parser.add_argument('--experiment_name', type=str,
+                    help='name of the experiment')
     args = parser.parse_args()
     return args
 
