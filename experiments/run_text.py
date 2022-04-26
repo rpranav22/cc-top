@@ -26,7 +26,7 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/newsgroup_constrained.yaml')
+                        default='configs/dbpedia_constrained.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')    
     parser.add_argument('--num_constraints', type=int, default=None,
@@ -92,6 +92,7 @@ def run_experiment(args):
         print("not lightning")
         train_data = get_data(root='./data', params=params, log_params=None, part='train')
         print(f"type: {type(train_data.x)}, length: {len(train_data.x)}")
+        mlflow_logger.log_hyperparams({'num_samples':len(train_data.x)})
         cluster_assignments = model.fit_model(train_data.x)
         train_results = model.evaluate(batch=torch.tensor(cluster_assignments),
                                       labels = torch.tensor(train_data.y),
@@ -141,6 +142,7 @@ def run_experiment(args):
         print(f"Primer:  train data size:{len(experiment.train_data)}, train_constraints: {len(experiment.train_data.c)}, test_size:{len(experiment.test_data.y)}, test_con: {len(experiment.test_data.c)}, val_size:{len(experiment.val_data.y)}, val_con: {len(experiment.val_data.c)}")
         print(f'sample data: {experiment.train_data.x[0]} \t label: {experiment.train_data.y[0]}')
         print(f"model: {type(experiment.model)}")
+        mlflow_logger.log_hyperparams({'num_samples': len(experiment.train_data.x)})
         # model.run_lda(train_data.x)
 
         # pytorch_profiler = torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CUDA], record_shapes=True, profile_memory=True)

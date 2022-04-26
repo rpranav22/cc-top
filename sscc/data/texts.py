@@ -1,3 +1,4 @@
+from operator import itemgetter
 import re
 import shutil
 from typing import List
@@ -141,9 +142,11 @@ class TextDataset(data.Dataset):
     def divide_dataset_by_classes(self, x, y, excluded_classes=None):
         
         print("\n\n\ntrying topic discovery initial size: {}\n\n\n".format(len(y)))
-        excluded_classes = list(range(10))
+        # excluded_classes = list(range(10))
+        
+        excluded_classes = [10,11,12,13]
         print('\nexcluded classes: ', excluded_classes)
-        # excluded_classes = [10,11,12,13]
+
         labelled_set = []
         unlabelled_set = []
 
@@ -194,8 +197,8 @@ class TextDataset(data.Dataset):
                                                             random_state=self.seed,
                                                             stratify=y_train)
         
-        # x_train, y_train = self.divide_dataset_by_classes(x_train, y_train)
-        # x_val, y_val = self.divide_dataset_by_classes(x_val, y_val)
+        x_train, y_train = self.divide_dataset_by_classes(x_train, y_train)
+        x_val, y_val = self.divide_dataset_by_classes(x_val, y_val)
 
         # build constraints
         c_df_train = self.build_constraints(np.array(y_train).astype(np.int32), int(self.num_constraints), seed=self.seed)
@@ -206,6 +209,13 @@ class TextDataset(data.Dataset):
         c_df_train.to_csv(f"{self.dataset_path}/C_train.csv")
         # c_df_val.to_csv(f"{self.dataset_path}/C_val.csv")
         # c_df_test.to_csv(f"{self.dataset_path}/C_test.csv")
+
+        if not self.constrained_clustering:
+            constrained_samples = np.unique(c_df_train[['i', 'j']].values)
+            print(f"\n length of xtrain was {len(x_train)}\nif we want to sample {self.num_constraints} constraints, we would be using {len(constrained_samples)} samples from the data for the baselines.\n\n")
+            x_train = list(itemgetter(*constrained_samples)(x_train))
+            y_train = list(itemgetter(*constrained_samples)(y_train))
+            print(f'length of x_train is {len(x_train)}\n\n')
 
         # store split data as pickle file
         with open(f"{self.dataset_path}/X_train", 'wb') as fp:

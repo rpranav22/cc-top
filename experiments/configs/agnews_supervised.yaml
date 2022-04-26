@@ -28,11 +28,11 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 3
+    max_epochs: 10
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
     experiment_name: 'supervised_plm'
-    run_name: 'agnews_lr2'
+    run_name: 'agnews_supervised_1k'

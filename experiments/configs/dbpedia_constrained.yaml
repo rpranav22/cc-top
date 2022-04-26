@@ -8,7 +8,7 @@ model_params:
 
 exp_params:
     dataset: 'dbpedia'
-    true_num_classes: 14
+    true_num_classes: 10
     val_size: 20000
     batch_size: 128
     max_length: 64
@@ -27,11 +27,11 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 100
+    max_epochs: 70
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'chapter2'
+    experiment_name: 'topic_discovery_phase-1'
     run_name: 'dbpedia_kcl_10k'

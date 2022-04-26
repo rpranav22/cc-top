@@ -22,17 +22,17 @@ exp_params:
     adam_epsilon: 0.00000001
     weight_decay: 0.01
     warmup_steps: 0
-    num_constraints: 10000
+    num_constraints: 20000
     clean_text: False
     remove_stopwords: False
     k: NULL
     
 trainer_params:
-    max_epochs: 3
+    max_epochs: 5
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
     experiment_name: 'supervised_plm'
-    run_name: 'dbpedia_lr2'
+    run_name: 'dbpedia_supervised'

@@ -18,7 +18,7 @@ exp_params:
     constrained_clustering: False
     num_workers: 0
     pin_memory: False
-    learning_rate: 0.00002
+    learning_rate: 0.00001
     adam_epsilon: 0.00000001
     weight_decay: 0.01
     warmup_steps: 0
@@ -28,11 +28,11 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 3
+    max_epochs: 10
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
     experiment_name: 'supervised_plm'
-    run_name: 'newgroup_lr2'
+    run_name: 'newsgroup_supervised'

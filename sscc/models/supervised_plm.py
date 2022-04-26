@@ -12,10 +12,10 @@ import pdb
 import tempfile
 
 class SupervisedPLM(nn.Module):
-    def __init__(self, model, loss, num_classes) -> None:
+    def __init__(self, model, loss, num_classes, **kwargs) -> None:
         super(SupervisedPLM, self).__init__()
         # self.max_length = 512
-        self.model_name = "bert-base-uncased"
+        self.model_name = kwargs['arch']
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = model #.to(self.device)
 
