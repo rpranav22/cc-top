@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from cgi import test
+import os
 import pdb
+import tempfile
 from unittest import TestResult
 import yaml
 import argparse
@@ -8,6 +10,7 @@ import torch
 # from transformers import Trainer, TrainingArguments
 import numpy as np
 import torch.backends.cudnn as cudnn
+from sscc import experiments
 from sscc.data.newsgroups import newsgroups
 from sscc.data.utils import get_data
 
@@ -26,7 +29,7 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/dbpedia_constrained.yaml')
+                        default='configs/dbpedia_td_p2.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')    
     parser.add_argument('--num_constraints', type=int, default=None,
@@ -119,13 +122,14 @@ def run_experiment(args):
 
         if 'model_uri' in config['model_params']:
             print('topic discovery is happening')
-            if config['model_params']['model_uri']:
-                model_uri = config['model_params']['model_uri']
-                print(model_uri)
-                model.load_state_dict(torch.load(model_uri)['state_dict'])
-                # for param in model.model.bert.parameters():
-                #     param.requires_grad=False
-                # pdb.set_trace()
+            if config['exp_params']['train_type']:
+                if config['exp_params']['train_type'] == 'finetune':
+                    model_uri = config['model_params']['model_uri']
+                    print(model_uri)
+                    model.load_state_dict(torch.load(model_uri)['state_dict'])
+                    # for param in model.model.bert.parameters():
+                    #     param.requires_grad=False
+                    # pdb.set_trace()
 
         experiment = Experiment(model,
                                 params=config['exp_params'],
@@ -135,15 +139,21 @@ def run_experiment(args):
                                 run_name=config['logging_params']['run_name'],
                                 experiment_name=config['logging_params']['experiment_name'])
 
-        # obtain data
-        # train_data = get_data(root='./data', params=params, log_params=None, part='train')
-        # val_data = get_data(root='./data', params=params, log_params=None, part='val')
 
         print(f"Primer:  train data size:{len(experiment.train_data)}, train_constraints: {len(experiment.train_data.c)}, test_size:{len(experiment.test_data.y)}, test_con: {len(experiment.test_data.c)}, val_size:{len(experiment.val_data.y)}, val_con: {len(experiment.val_data.c)}")
         print(f'sample data: {experiment.train_data.x[0]} \t label: {experiment.train_data.y[0]}')
         print(f"model: {type(experiment.model)}")
-        mlflow_logger.log_hyperparams({'num_samples': len(experiment.train_data.x)})
+
+        constrained_samples = np.unique(experiment.train_data.c[['i', 'j']].values)
+        num_samples = len(constrained_samples)
+        print(f'\n\n Total no. of samples used for the constraints is {num_samples}')
+
+        mlflow_logger.log_hyperparams({'total_samples': num_samples})
         # model.run_lda(train_data.x)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+                storage_path = os.path.join(tmp_dir, 'c_df_train.csv')
+                experiment.train_data.c.to_csv(storage_path)
+                mlflow_logger.experiment.log_artifact(local_path=storage_path, run_id=mlflow_logger.run_id)
 
         # pytorch_profiler = torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CUDA], record_shapes=True, profile_memory=True)
         pytorch_profiler = PyTorchProfiler(activities=[torch.profiler.ProfilerActivity.CUDA], dirpath='./supervised_profiler/', filename='new_profiler', export_to_chrome=True, record_shapes=True, profile_memory=True, use_cuda=True)

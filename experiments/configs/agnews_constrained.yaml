@@ -13,7 +13,6 @@ exp_params:
     batch_size: 128
     max_length: 64
     num_constraints: 10000
-    is_tensor: True
     constraintmatch: False
     constrained_clustering: True
     num_workers: 0

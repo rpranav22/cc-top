@@ -1,11 +1,11 @@
 model_params:
     model: 'constrained_clustering'
     loss: KCL
-    model_uri: 'mlruns/11/0bbd823be50f4a26bcdf46d1eeb9bbb4/artifacts/final_model.pt'
+    model_uri: 'mlruns/14/2b455510743245dea727718d532db5e3/artifacts/final_model.pt'
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 30
+        num_classes: 100
 
 exp_params:
     dataset: 'dbpedia'
@@ -13,10 +13,12 @@ exp_params:
     val_size: 20000
     batch_size: 128
     max_length: 64
-    num_constraints: 50000
-    is_tensor: True
-    constraintmatch: False
+    num_constraints: 5000
+    new_samples: 4000
     constrained_clustering: True
+    topic_discovery: True
+    train_type: 'finetune'
+    new_split: '2v2'
     num_workers: 0
     pin_memory: False
     learning_rate: 0.00001
@@ -28,11 +30,11 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 20
+    max_epochs: 100
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'topic-discovery'
-    run_name: 'dbpedia_kcl_50k-10L-4UL_50k-all'
+    experiment_name: 'td_phase-2'
+    run_name: 'dbpedia_kcl_finetune_5k_2v2'

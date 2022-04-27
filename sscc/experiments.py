@@ -49,6 +49,9 @@ class Experiment(pl.LightningModule):
         self.train_step = 0
         self.val_step = 0
 
+        if 'model_uri' in model_params:
+            params['model_uri'] = model_params['model_uri']
+
         # initialize train/val/test data
         self.train_data = get_data(root='./data',
                                    params=self.params,

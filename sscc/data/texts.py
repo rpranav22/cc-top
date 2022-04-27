@@ -10,7 +10,7 @@ import pdb
 import pickle
 
 from torch.utils import data
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from transformers import BertTokenizerFast, BertForSequenceClassification
 
 class TextDataset(data.Dataset):
@@ -30,7 +30,6 @@ class TextDataset(data.Dataset):
                  test_size: float=0.2,
                  clean_text: bool = True, 
                  remove_stopwords: bool = True,
-                 is_tensor: bool=True,
                  download: bool=True,
                  **kwargs):
         """Text Data Base Class
@@ -60,6 +59,22 @@ class TextDataset(data.Dataset):
         self.k = k
         self.num_constraints = num_constraints
         self.seed = seed
+        if 'topic_discovery' in kwargs:
+            self.topic_discovery = kwargs['topic_discovery']
+        if 'new_samples' in kwargs:
+            self.new_samples = kwargs['new_samples']
+            self.phase = 2
+        if 'num_samples' in kwargs:
+            self.num_samples = kwargs['num_samples']
+            self.phase = 1
+        else:
+            self.num_samples = None
+        if 'train_type' in kwargs:
+            self.train_type = kwargs['train_type']
+        if 'new_split' in kwargs:
+            self.new_split = kwargs['new_split']
+        if 'model_uri' in kwargs:
+            self.model_uri = kwargs['model_uri']
 
     @property
     def size(self):
@@ -113,7 +128,7 @@ class TextDataset(data.Dataset):
             
         
 
-    def load_dataset(self, part='train', clean_text=True, remove_stopwords=True, is_tensor=True):
+    def load_dataset(self, part='train', clean_text=True, remove_stopwords=True):
 
         path = os.path.join(self.root, self.base_folder)
 
@@ -139,26 +154,65 @@ class TextDataset(data.Dataset):
     def tokenize_text(self, texts):
         return self.tokenizer.encode_plus(texts, truncation=True, padding=True, max_length=self.max_length)
 
-    def divide_dataset_by_classes(self, x, y, excluded_classes=None):
+    def divide_dataset_by_classes(self, x, y, excluded_classes=[10, 11, 12, 13], num_samples=None):
         
         print("\n\n\ntrying topic discovery initial size: {}\n\n\n".format(len(y)))
         # excluded_classes = list(range(10))
         
-        excluded_classes = [10,11,12,13]
         print('\nexcluded classes: ', excluded_classes)
 
         labelled_set = []
         unlabelled_set = []
 
-        for x, y in zip(x,y):
-            if y in excluded_classes:
-                unlabelled_set.append((x,y))
+        for x_i, y_i in zip(x,y):
+            if y_i in excluded_classes:
+                unlabelled_set.append((x_i,y_i))
             else:
-                labelled_set.append((x,y))
+                labelled_set.append((x_i,y_i))
 
-        x,y = zip(*labelled_set)
+        
+        x_l,y_l = zip(*labelled_set)
+        x_ul,y_ul = zip(*unlabelled_set)
 
-        print(f'final size: {len(y)}')
+        if self.phase == 2:
+            # pdb.set_trace()
+            cdf_uri = "/".join(self.model_uri.split('/')[:-1]) + "/c_df_train.csv"
+            c_df = pd.read_csv(cdf_uri)
+            constrained_samples = np.unique(c_df[['i', 'j']].values)
+
+            x_ul = [x_samp for i, x_samp in enumerate(x_ul) if not i in constrained_samples]
+            y_ul = [y_samp for i, y_samp in enumerate(y_ul) if not i in constrained_samples]
+
+            if self.new_split == '2v2':
+                x_1, _, y_1, _ = train_test_split(x_l, y_l, train_size=2000, stratify=y_l)
+                x_2, _, y_2, _ = train_test_split(x_ul, y_ul, train_size=2000, stratify=y_ul)
+
+                # split_2 = StratifiedShuffleSplit(n_splits=1, train_size=2000, test_size=2000)
+                # pdb.set_trace()
+                # train_indices = split_2.split(x_l, y_l)
+                # x_1, y_1 = x_l[train_indices], y_l[train_indices]
+
+                # for _, test_index in split_2.split(x_ul, y_ul):
+                #     x_2, y_2 = x_ul[test_index], y_ul[test_index]
+                # pdb.set_trace()
+                if self.train_type == 'finetune':
+                    x_s = list(itemgetter(*constrained_samples)(x))
+                    y_s = list(itemgetter(*constrained_samples)(y))
+                    x = x_s + x_1 + x_2
+                    y = y_s + y_1 + y_2
+               
+
+
+
+        if self.phase == 1:
+            x = x_l
+            y = y_l
+
+        # pdb.set_trace()
+
+        print(f'final train size: {len(y)}')
+
+        
         return x, y
     
     def _split_and_save(self, x_train, y_train, y_test=None, x_test=None):
@@ -186,19 +240,31 @@ class TextDataset(data.Dataset):
         
         # os.mkdir(dataset_path)
 
+        if self.topic_discovery:
+            if self.phase == 1:
+                x_train, y_train = self.divide_dataset_by_classes(x_train, y_train)
+                # x_val, y_val = self.divide_dataset_by_classes(x_val, y_val)
+                if x_test:
+                    x_test, y_test = self.divide_dataset_by_classes(x_test, y_test)
+
+
+
         if not y_test and not x_test:
             x_train, x_test, y_train, y_test = train_test_split(x_train, y_train,
                                                             test_size=self.test_size,
                                                             random_state=self.seed,
+                                                            train_size=self.num_samples,
                                                             stratify=y_train)
 
         x_train, x_val, y_train, y_val = train_test_split(x_train, y_train,
                                                             test_size=self.val_size,
                                                             random_state=self.seed,
+                                                            train_size=self.num_samples,
                                                             stratify=y_train)
-        
-        x_train, y_train = self.divide_dataset_by_classes(x_train, y_train)
-        x_val, y_val = self.divide_dataset_by_classes(x_val, y_val)
+        if self.topic_discovery:
+            if self.phase == 2:
+
+                x_train, y_train = self.divide_dataset_by_classes(x_train, y_train, list(range(10)), 4000)
 
         # build constraints
         c_df_train = self.build_constraints(np.array(y_train).astype(np.int32), int(self.num_constraints), seed=self.seed)
@@ -210,8 +276,12 @@ class TextDataset(data.Dataset):
         # c_df_val.to_csv(f"{self.dataset_path}/C_val.csv")
         # c_df_test.to_csv(f"{self.dataset_path}/C_test.csv")
 
+        
+
+
         if not self.constrained_clustering:
             constrained_samples = np.unique(c_df_train[['i', 'j']].values)
+            print(f'\n\n Total no. of samples used for the constraints is {len(constrained_samples)}')
             print(f"\n length of xtrain was {len(x_train)}\nif we want to sample {self.num_constraints} constraints, we would be using {len(constrained_samples)} samples from the data for the baselines.\n\n")
             x_train = list(itemgetter(*constrained_samples)(x_train))
             y_train = list(itemgetter(*constrained_samples)(y_train))

@@ -25,6 +25,7 @@ models = {'supervised': Supervised,
           'unsupervised': LDA,
           'supervised_plm': SupervisedPLM,
           'constrained_clustering': ConstrainedClustering,
+          'topic_discovery': ConstrainedClustering,
           'bertopic': BERTopic,
           'bert_kmeans': BERTKmeans}
 

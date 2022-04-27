@@ -10,20 +10,20 @@ class dbpedia(TextDataset):
     def __init__(self, 
                 root: str, part: str, val_size: float, 
                 num_constraints: int, k: int, seed: int = 1337, test_size: float=0.2,
-                clean_text: bool = True, remove_stopwords: bool = True, is_tensor=True,
+                clean_text: bool = True, remove_stopwords: bool = True, 
                 download: bool = True, **kwargs):
         super(dbpedia, self).__init__(root, part, 
                                         val_size, num_constraints, k, 
                                         seed=seed, test_size=test_size,
                                         clean_text=clean_text, remove_stopwords=remove_stopwords,
-                                        is_tensor=is_tensor, download=download, **kwargs)
+                                        download=download, **kwargs)
         # self.fold = fold
         # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.dataset_path = os.path.join(self.root, self.base_folder)
-        self.is_tensor = is_tensor
+        
         if download:
             self.download()
-        self.x, self.y, self.c = self.load_dataset(part=self.part, clean_text=self.clean_text, remove_stopwords=self.remove_stopwords, is_tensor=self.is_tensor)
+        self.x, self.y, self.c = self.load_dataset(part=self.part, clean_text=self.clean_text, remove_stopwords=self.remove_stopwords)
     
   
     def __getitem__(self, index):

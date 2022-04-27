@@ -21,29 +21,6 @@ tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased', do_lower_case
 # tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base', do_lower_case=True)
 
 
-# def constrained_collate_fn(batch, data_collate=default_collate):
-#     """
-#     Collates the constrained samples only
-#     one sample of a batch consists of 5 elements: 
-#         1) xi
-#         2) xj
-#         3) yi
-#         4) yj
-#         5) cij
-#     """
-#     # from timeit import default_timer as timer; start = timer()
-#     transposed_data = list(zip(*batch))
-#     data = [data_collate(b) for b in transposed_data]
-
-#     # stack images x_i and x_j
-#     images = torch.cat((data[0], data[1]), dim=0)
-#     # stack labels y_i and y_j
-#     labels = torch.cat((data[2], data[3]), dim=0)
-#     constraints = data[4]
-#     # rearrange pre-specified constraints to make them trainable!
-#     train_target, eval_target = prepare_task_target(labels, constraints)
-#     # print(f'constrained_collate_fn: {timer() - start}')
-#     return {'images': images.double(), 'train_target': train_target, 'eval_target': eval_target}
 
 def constrained_collate_fn(batch, params):
     """
@@ -260,38 +237,18 @@ def get_data(root, params, log_params, part):
     elif params['dataset'] == 'newsgroups':
         data = newsgroups(root=root,
                        part=part,
-                       val_size=params['val_size'],
-                       num_constraints=params['num_constraints'],
-                       is_tensor=params['is_tensor'],
-                       clean_text=params['clean_text'],
-                       constrained_clustering=params['constrained_clustering'],
-                       remove_stopwords=['remove_stopwords'],
-                       max_length = params['max_length'],
-                       k=params['k'])
+                       **params
+                       )
     
     elif params['dataset'] == 'agnews':
         data = agnews(root=root,
                        part=part,
-                       val_size=params['val_size'],
-                       num_constraints=params['num_constraints'],
-                       is_tensor=params['is_tensor'],
-                       clean_text=params['clean_text'],
-                       constrained_clustering=params['constrained_clustering'],
-                       remove_stopwords=['remove_stopwords'],
-                       max_length = params['max_length'],
-                       k=params['k'])
+                       **params)
 
     elif params['dataset'] == 'dbpedia':
         data = dbpedia(root=root,
                        part=part,
-                       val_size=params['val_size'],
-                       num_constraints=params['num_constraints'],
-                       is_tensor=params['is_tensor'],
-                       clean_text=params['clean_text'],
-                       constrained_clustering=params['constrained_clustering'],
-                       remove_stopwords=['remove_stopwords'],
-                       max_length = params['max_length'],
-                       k=params['k'])
+                       **params)
 
     elif params['dataset'] == 'cifar20':
         data = CIFAR20(root=root,
