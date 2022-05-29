@@ -8,10 +8,13 @@ from torch.utils.data.dataloader import default_collate
 from transformers.file_utils import is_tf_available, is_torch_available
 from transformers import BertTokenizerFast, RobertaTokenizerFast
 from sscc.data.agnews import agnews
+from sscc.data.banking import banking
 from sscc.data.cifar10 import CIFAR10, transforms_cifar10_train, transforms_cifar10_test
 from sscc.data.cifar20 import CIFAR20
 from sscc.data.mnist import MNIST, transforms_mnist_train, transforms_mnist_test
 from sscc.data.fashionmnist import FASHIONMNIST, transforms_fmnist_train, transforms_fmnist_test
+from sscc.data.trec import trec
+from sscc.data.tweeteval import tweeteval
 from sscc.data.yaleb import YaleB
 from sscc.data.yalebextend import YaleBExt, transforms_yaleb_train
 from sscc.data.newsgroups import newsgroups
@@ -245,10 +248,25 @@ def get_data(root, params, log_params, part):
                        part=part,
                        **params)
 
+    elif params['dataset'] == 'trec':
+        data = trec(root=root,
+                       part=part,
+                       **params)
+
     elif params['dataset'] == 'dbpedia':
         data = dbpedia(root=root,
                        part=part,
                        **params)
+    
+    elif params['dataset'] == 'tweeteval':
+        data = tweeteval(root=root,
+                       part=part,
+                       **params)
+
+    elif params['dataset'] == 'banking':
+        data = banking(root=root,
+                        part=part,
+                        **params)
 
     elif params['dataset'] == 'cifar20':
         data = CIFAR20(root=root,

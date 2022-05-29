@@ -2,6 +2,7 @@ from operator import itemgetter
 import re
 import shutil
 from typing import List
+from cv2 import phase
 import numpy as np
 import pandas as pd
 import torch
@@ -59,22 +60,35 @@ class TextDataset(data.Dataset):
         self.k = k
         self.num_constraints = num_constraints
         self.seed = seed
+
         if 'topic_discovery' in kwargs:
             self.topic_discovery = kwargs['topic_discovery']
-        if 'new_samples' in kwargs:
-            self.new_samples = kwargs['new_samples']
-            self.phase = 2
+            if 'phase' in kwargs:
+                self.phase = phase
+            else:
+                self.phase = None
+
+            if 'new_samples' in kwargs:
+                self.new_samples = kwargs['new_samples']
+
+        else:
+            self.topic_discovery = None
         if 'num_samples' in kwargs:
             self.num_samples = kwargs['num_samples']
-            self.phase = 1
         else:
             self.num_samples = None
         if 'train_type' in kwargs:
             self.train_type = kwargs['train_type']
+        else: 
+            self.train_type = None
+        if 'test_set' in kwargs:
+            self.test_set = kwargs['test_set']
         if 'new_split' in kwargs:
             self.new_split = kwargs['new_split']
         if 'model_uri' in kwargs:
             self.model_uri = kwargs['model_uri']
+        if 'excluded_classes' in kwargs:
+            self.excluded_classes = kwargs['excluded_classes']
 
     @property
     def size(self):
@@ -154,18 +168,18 @@ class TextDataset(data.Dataset):
     def tokenize_text(self, texts):
         return self.tokenizer.encode_plus(texts, truncation=True, padding=True, max_length=self.max_length)
 
-    def divide_dataset_by_classes(self, x, y, excluded_classes=[10, 11, 12, 13], num_samples=None):
+    def divide_dataset_by_classes(self, x, y, num_samples=None):
         
         print("\n\n\ntrying topic discovery initial size: {}\n\n\n".format(len(y)))
         # excluded_classes = list(range(10))
         
-        print('\nexcluded classes: ', excluded_classes)
+        print('\nexcluded classes: ', self.excluded_classes)
 
         labelled_set = []
         unlabelled_set = []
 
         for x_i, y_i in zip(x,y):
-            if y_i in excluded_classes:
+            if y_i in self.excluded_classes:
                 unlabelled_set.append((x_i,y_i))
             else:
                 labelled_set.append((x_i,y_i))
@@ -184,25 +198,42 @@ class TextDataset(data.Dataset):
             y_ul = [y_samp for i, y_samp in enumerate(y_ul) if not i in constrained_samples]
 
             if self.new_split == '2v2':
-                x_1, _, y_1, _ = train_test_split(x_l, y_l, train_size=2000, stratify=y_l)
-                x_2, _, y_2, _ = train_test_split(x_ul, y_ul, train_size=2000, stratify=y_ul)
+                n_l_samples = int(self.new_samples/2)
+                n_ul_samples = int(self.new_samples/2)
+                x_1, _, y_1, _ = train_test_split(x_l, y_l, train_size=n_l_samples, stratify=y_l)
+                x_2, _, y_2, _ = train_test_split(x_ul, y_ul, train_size=n_ul_samples, stratify=y_ul)
 
-                # split_2 = StratifiedShuffleSplit(n_splits=1, train_size=2000, test_size=2000)
-                # pdb.set_trace()
-                # train_indices = split_2.split(x_l, y_l)
-                # x_1, y_1 = x_l[train_indices], y_l[train_indices]
-
-                # for _, test_index in split_2.split(x_ul, y_ul):
-                #     x_2, y_2 = x_ul[test_index], y_ul[test_index]
-                # pdb.set_trace()
                 if self.train_type == 'finetune':
                     x_s = list(itemgetter(*constrained_samples)(x))
                     y_s = list(itemgetter(*constrained_samples)(y))
                     x = x_s + x_1 + x_2
                     y = y_s + y_1 + y_2
+                    print(f'\nlabelled: {len(x_1)}, unlabelled: {len(x_2)}, total: {len(x)}')
                
+            if self.new_split == '3v1':
+                x_1, _, y_1, _ = train_test_split(x_l, y_l, train_size=1000, stratify=y_l)
+                x_2, _, y_2, _ = train_test_split(x_ul, y_ul, train_size=3000, stratify=y_ul)
+                
+                
+                if self.train_type == 'finetune':
+                    n_l_samples = int(0.25 * self.new_samples)
+                    n_ul_samples = int(0.75 * self.new_samples)
+                    x_s = list(itemgetter(*constrained_samples)(x))
+                    y_s = list(itemgetter(*constrained_samples)(y))
+                    x = x_s + x_1 + x_2
+                    y = y_s + y_1 + y_2
+                    print(f'\nlabelled: {len(x_1)}, unlabelled: {len(x_2)}, total: {len(x)}')
 
+            if self.new_split == '3.5v0.5':
+                x_1, _, y_1, _ = train_test_split(x_l, y_l, train_size=500, stratify=y_l)
+                x_2, _, y_2, _ = train_test_split(x_ul, y_ul, train_size=3500, stratify=y_ul)
 
+                if self.train_type == 'finetune':
+                    x_s = list(itemgetter(*constrained_samples)(x))
+                    y_s = list(itemgetter(*constrained_samples)(y))
+                    x = x_s + x_1 + x_2
+                    y = y_s + y_1 + y_2
+                    print(f'\nlabelled: {len(x_1)}, unlabelled: {len(x_2)}, total: {len(x)}')
 
         if self.phase == 1:
             x = x_l
@@ -210,8 +241,10 @@ class TextDataset(data.Dataset):
 
         # pdb.set_trace()
 
-        print(f'final train size: {len(y)}')
+        print(f'final train size: {len(y_l)}')
 
+        if self.train_type == 'testing':
+            return x_l, y_l, x_ul, y_ul
         
         return x, y
     
@@ -253,18 +286,35 @@ class TextDataset(data.Dataset):
             x_train, x_test, y_train, y_test = train_test_split(x_train, y_train,
                                                             test_size=self.test_size,
                                                             random_state=self.seed,
-                                                            train_size=self.num_samples,
+                                                            # train_size=self.num_samples,
                                                             stratify=y_train)
 
         x_train, x_val, y_train, y_val = train_test_split(x_train, y_train,
                                                             test_size=self.val_size,
                                                             random_state=self.seed,
-                                                            train_size=self.num_samples,
-                                                            stratify=y_train)
+                                                            # train_size=self.num_samples,
+                                                            stratify=y_test)
         if self.topic_discovery:
             if self.phase == 2:
 
-                x_train, y_train = self.divide_dataset_by_classes(x_train, y_train, list(range(10)), 4000)
+                x_train, y_train = self.divide_dataset_by_classes(x_train, y_train, 4000)
+
+        if self.train_type == 'testing':
+
+            x_l, y_l, x_ul, y_ul = self.divide_dataset_by_classes(x_test, y_test)
+
+            if self.test_set == 'd_test_1':
+                x_test, y_test = x_l, y_l
+
+                print(f'\n\nOnly testing samples that don\'t belong to {self.excluded_classes} which is {self.test_set}. There are a total of {len(y_test)} samples.\n')
+            elif self.test_set == 'd_test_2':
+                x_test, y_test = x_ul, y_ul
+                print(f'\n\nOnly testing samples that belongs to {self.excluded_classes} which is {self.test_set}. There are a total of {len(y_test)} samples.\n')
+            else:
+                print(f'\n\nTesting all samples in the dataset which is {self.test_set}. There are a total of {len(y_test)} samples.\n')
+            
+
+            
 
         # build constraints
         c_df_train = self.build_constraints(np.array(y_train).astype(np.int32), int(self.num_constraints), seed=self.seed)

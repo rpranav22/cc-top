@@ -4,36 +4,34 @@ model_params:
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 100
+        num_classes: 6
 
 exp_params:
-    dataset: 'dbpedia'
-    true_num_classes: 10
-    val_size: 20000
-    batch_size: 128
+    dataset: 'trec'
+    true_num_classes: 6
+    val_size: 0.5
+    batch_size: 32
     max_length: 64
     num_constraints: 10000
-    num_samples: None
+    constraintmatch: False
     constrained_clustering: True
-    topic_discovery: True
-    phase: 1
-    excluded_classes: [10,11,12,13]
+    coarse_grained: True 
     num_workers: 0
     pin_memory: False
-    learning_rate: 0.00001
+    learning_rate: 0.00002
     adam_epsilon: 0.00000001
-    weight_decay: 0.0
+    weight_decay: 0.00001
     warmup_steps: 0
     clean_text: False
     remove_stopwords: False
     k: NULL
     
 trainer_params:
-    max_epochs: 100
+    max_epochs: 50
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'td_phase-1'
-    run_name: 'dbpedia_kcl_10k'
+    experiment_name: 'chapter2'
+    run_name: 'trec_kcl_10k'

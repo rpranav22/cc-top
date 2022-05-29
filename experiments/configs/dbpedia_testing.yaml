@@ -1,7 +1,7 @@
 model_params:
     model: 'constrained_clustering'
     loss: KCL
-    model_uri: 'mlruns/14/c6de74ba2fe149049ffa2c15a830401a/artifacts/final_model.pt'
+    model_uri: 'mlruns/15/788e032a16a7402fae29f61ab0902cba/artifacts/final_model.pt'
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
@@ -13,20 +13,15 @@ exp_params:
     val_size: 20000
     batch_size: 128
     max_length: 64
-    num_constraints: 5000
-    new_samples: 9000
+    num_constraints: 1000
     constrained_clustering: True
     topic_discovery: True
-    train_type: 'finetune'
-    test_set: 'combined'
-    new_split: '2v2'
-    phase: 2
-    excluded_classes: [0,1,2,3,4,5,6,7,8,9]
+    train_type: 'testing'
+    test_set: 'd_test_1'
+    excluded_classes: [10,11,12,13]
     num_workers: 0
     pin_memory: False
-    learning_rate: 0.00001
-    adam_epsilon: 0.00000001
-    weight_decay: 0.0001
+    weight_decay: 0.01
     warmup_steps: 0
     clean_text: False
     remove_stopwords: False
@@ -40,4 +35,4 @@ trainer_params:
 logging_params:
     manual_seed: 1337
     experiment_name: 'td_phase-2'
-    run_name: 'dbpedia_kcl_finetune_5k_2v2'
+    run_name: 'dbpedia_kcl_testing_combined'

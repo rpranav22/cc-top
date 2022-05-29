@@ -7,20 +7,19 @@ model_params:
         num_classes: 100
 
 exp_params:
-    dataset: 'dbpedia'
-    true_num_classes: 10
-    val_size: 20000
-    batch_size: 128
-    max_length: 64
+    dataset: 'banking'
+    true_num_classes: 58
+    val_size: 0.5
+    batch_size: 256
+    max_length: 32
     num_constraints: 10000
     num_samples: None
     constrained_clustering: True
     topic_discovery: True
-    phase: 1
-    excluded_classes: [10,11,12,13]
+    excluded_classes: [58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76]
     num_workers: 0
     pin_memory: False
-    learning_rate: 0.00001
+    learning_rate: 0.00002
     adam_epsilon: 0.00000001
     weight_decay: 0.0
     warmup_steps: 0
@@ -29,11 +28,11 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 100
+    max_epochs: 200
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
     experiment_name: 'td_phase-1'
-    run_name: 'dbpedia_kcl_10k'
+    run_name: 'banking_kcl_10k'

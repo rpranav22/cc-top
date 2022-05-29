@@ -29,11 +29,13 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/dbpedia_td_p2.yaml')
+                        default='configs/trec_supervised.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')    
     parser.add_argument('--num_constraints', type=int, default=None,
-                        help='amount of constraints')     
+                        help='amount of constraints')
+    parser.add_argument('--test_set', type=str, default=None,
+                        help='test data type')     
     parser.add_argument('--batch_size', type=int, default=None,
                         help="batch size")                  
     parser.add_argument('--max_epochs', type=int, default=None,
@@ -119,14 +121,15 @@ def run_experiment(args):
 
     else:
         print("Using LightningModule")
-
+        train_type = None
         if 'model_uri' in config['model_params']:
             print('topic discovery is happening')
             if config['exp_params']['train_type']:
-                if config['exp_params']['train_type'] == 'finetune':
+                if config['exp_params']['train_type'] == 'finetune' or config['exp_params']['train_type'] == 'testing':
                     model_uri = config['model_params']['model_uri']
                     print(model_uri)
                     model.load_state_dict(torch.load(model_uri)['state_dict'])
+                    train_type = config['exp_params']['train_type']
                     # for param in model.model.bert.parameters():
                     #     param.requires_grad=False
                     # pdb.set_trace()
@@ -173,8 +176,11 @@ def run_experiment(args):
                         **config['trainer_params'] 
         )
 
-        trainer.fit(experiment)
-        trainer.test()
+        if train_type == 'testing':
+            trainer.test(experiment)
+        else:
+            trainer.fit(experiment)
+            trainer.test()
 
     print("I have reached till here")
 

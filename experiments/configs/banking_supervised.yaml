@@ -1,28 +1,28 @@
 model_params:
-    model: 'bert_kmeans'
+    model: 'supervised_plm'
     loss: None
     architecture:
-        arch: 'bert_kmeans'
-        sentence_transformer: True
+        arch: bert_classifier
         base_model: 'bert-base-uncased'
         num_classes: 77
+        
 
 exp_params:
     dataset: 'banking'
-    true_num_classes: 77
     val_size: 0.5
-    batch_size: 128
-    max_length: 64
-    num_constraints: 1000
+    true_num_classes: 77
+    batch_size: 64
+    max_length: 32
     is_tensor: True
     constraintmatch: False
     constrained_clustering: False
     num_workers: 0
     pin_memory: False
-    learning_rate: 0.00001
+    learning_rate: 0.00002
     adam_epsilon: 0.00000001
     weight_decay: 0.01
     warmup_steps: 0
+    num_constraints: 20000
     clean_text: False
     remove_stopwords: False
     k: NULL
@@ -34,5 +34,5 @@ trainer_params:
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'ch1_unsupervised'
-    run_name: 'banking_bert-kmeans_1k'
+    experiment_name: 'supervised_plm'
+    run_name: 'banking_supervised'

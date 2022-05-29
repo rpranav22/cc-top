@@ -1,10 +1,10 @@
 model_params:
     model: 'constrained_clustering'
-    loss: MCL
+    loss: KCL
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 4
+        num_classes: 30
 
 exp_params:
     dataset: 'agnews'
@@ -12,7 +12,7 @@ exp_params:
     val_size: 8000
     batch_size: 128
     max_length: 64
-    num_constraints: 10000
+    num_constraints: 5000
     constraintmatch: False
     constrained_clustering: True
     num_workers: 0
@@ -26,11 +26,11 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 50
+    max_epochs: 80
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'chapter2'
-    run_name: 'agnews_mcl_10k'
+    experiment_name: 'chapter3'
+    run_name: 'agnews_kcl_5k'
