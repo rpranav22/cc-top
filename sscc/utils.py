@@ -7,7 +7,7 @@ from sscc.models.supervised import Supervised
 from sscc.models.scm import SCM
 from sscc.models.pseudolabel import PseudoLabel
 from sscc.models.ccm import CCM
-from sscc.models.bertopic import BERTopic
+
 
 from sscc.architectures.lenet import LeNet
 from sscc.architectures.vgg import VGG
@@ -26,7 +26,6 @@ models = {'supervised': Supervised,
           'supervised_plm': SupervisedPLM,
           'constrained_clustering': ConstrainedClustering,
           'topic_discovery': ConstrainedClustering,
-          'bertopic': BERTopic,
           'bert_kmeans': BERTKmeans}
 
 architectures = {'lenet': LeNet,

@@ -1,38 +1,36 @@
 model_params:
-    model: 'supervised_plm'
-    loss: None
+    model: 'constrained_clustering'
+    loss: KCL
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
         num_classes: 14
-        
 
 exp_params:
     dataset: 'dbpedia'
-    val_size: 0.5
     true_num_classes: 14
+    val_size: 0.5
     batch_size: 256
     max_length: 64
-    is_tensor: True
+    num_constraints: 10000
     constraintmatch: False
-    constrained_clustering: False
+    constrained_clustering: True
     num_workers: 0
     pin_memory: False
     learning_rate: 0.00002
     adam_epsilon: 0.00000001
-    weight_decay: 0.01
+    weight_decay: 0.00001
     warmup_steps: 0
-    num_constraints: 20000
     clean_text: False
     remove_stopwords: False
     k: NULL
     
 trainer_params:
-    max_epochs: 5
-    min_epochs: 1
+    max_epochs: 50
+    min_epochs: 50
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'supervised_plm'
-    run_name: 'dbpedia_supervised'
+    experiment_name: 'table1_dbpedia'
+    run_name: 'trec_kcl_10k'

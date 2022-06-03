@@ -289,7 +289,7 @@ class TextDataset(data.Dataset):
                                                             # train_size=self.num_samples,
                                                             stratify=y_train)
 
-        x_train, x_val, y_train, y_val = train_test_split(x_train, y_train,
+        x_test, x_val, y_test, y_val = train_test_split(x_test, y_test,
                                                             test_size=self.val_size,
                                                             random_state=self.seed,
                                                             # train_size=self.num_samples,

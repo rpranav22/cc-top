@@ -18,7 +18,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
 from pytorch_lightning.callbacks import LearningRateMonitor, GPUStatsMonitor, DeviceStatsMonitor
 from pytorch_lightning.profiler import PyTorchProfiler
-import torch.profiler
+# import torch.profiler
 from sscc.experiments import Experiment, save_dict_as_yaml_mlflow
 from sscc.metrics import Evaluator
 from sscc.utils import *
@@ -29,7 +29,7 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/trec_supervised.yaml')
+                        default='configs/trec_constrained.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')    
     parser.add_argument('--num_constraints', type=int, default=None,
@@ -159,13 +159,13 @@ def run_experiment(args):
                 mlflow_logger.experiment.log_artifact(local_path=storage_path, run_id=mlflow_logger.run_id)
 
         # pytorch_profiler = torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CUDA], record_shapes=True, profile_memory=True)
-        pytorch_profiler = PyTorchProfiler(activities=[torch.profiler.ProfilerActivity.CUDA], dirpath='./supervised_profiler/', filename='new_profiler', export_to_chrome=True, record_shapes=True, profile_memory=True, use_cuda=True)
+        # pytorch_profiler = PyTorchProfiler(activities=[torch.profiler.ProfilerActivity.CUDA], dirpath='./supervised_profiler/', filename='new_profiler', export_to_chrome=True, record_shapes=True, profile_memory=True, use_cuda=True)
         # torch.profiler.tensorboard_trace_handler('./log/constrained_clustering')
         
         trainer = Trainer(
                         reload_dataloaders_every_epoch=False,
                         log_every_n_steps=100,
-                        gpus=1,
+                        gpus=-1,
                         # amp_backend='native',
                         precision=16,
                         checkpoint_callback=True,
