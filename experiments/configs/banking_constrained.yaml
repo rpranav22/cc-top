@@ -10,14 +10,14 @@ exp_params:
     dataset: 'banking'
     true_num_classes: 77
     val_size: 0.5
-    batch_size: 128
+    batch_size: 256
     max_length: 64
-    num_constraints: 50000
+    num_constraints: 20000
     constraintmatch: False
     constrained_clustering: True
     num_workers: 0
     pin_memory: False
-    learning_rate: 0.00002
+    learning_rate: 0.00001
     adam_epsilon: 0.00000001
     weight_decay: 0.00001
     warmup_steps: 0
@@ -32,5 +32,5 @@ trainer_params:
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'chapter2'
-    run_name: 'banking_kcl_50k'
+    experiment_name: 'banking_test'
+    run_name: 'banking_kcl_20k'

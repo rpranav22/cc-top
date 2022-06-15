@@ -188,7 +188,7 @@ class Experiment(pl.LightningModule):
 
         for key, value in zip(scores.keys(), scores.values()): self.log(name=key, value=value)
 
-        self._save_model_mlflow()
+        # self._save_model_mlflow()
 
         self.logger.experiment.log_param(key='run_name',
                                          value=self.run_name,

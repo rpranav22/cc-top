@@ -29,7 +29,7 @@ def parse_args():
                         dest='filename',
                         metavar='FILE',
                         help='path to config file',
-                        default='configs/trec_constrained.yaml')
+                        default='configs/bert_kmeans.yaml')
     parser.add_argument('--num_classes', type=int, default=None,
                         help='amount of a priori classes')    
     parser.add_argument('--num_constraints', type=int, default=None,

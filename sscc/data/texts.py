@@ -60,6 +60,7 @@ class TextDataset(data.Dataset):
         self.k = k
         self.num_constraints = num_constraints
         self.seed = seed
+        self.dataset = kwargs['dataset']
 
         if 'topic_discovery' in kwargs:
             self.topic_discovery = kwargs['topic_discovery']
@@ -89,6 +90,10 @@ class TextDataset(data.Dataset):
             self.model_uri = kwargs['model_uri']
         if 'excluded_classes' in kwargs:
             self.excluded_classes = kwargs['excluded_classes']
+        if 'constrained_samples' in kwargs:
+            self.constrained_samples = kwargs['constrained_samples']
+        else:
+            self.constrained_samples = None
 
     @property
     def size(self):
@@ -289,11 +294,18 @@ class TextDataset(data.Dataset):
                                                             # train_size=self.num_samples,
                                                             stratify=y_train)
 
-        x_test, x_val, y_test, y_val = train_test_split(x_test, y_test,
+        if self.dataset == 'trec':
+            x_train, x_val, y_train, y_val = train_test_split(x_train, y_train,
                                                             test_size=self.val_size,
                                                             random_state=self.seed,
                                                             # train_size=self.num_samples,
-                                                            stratify=y_test)
+                                                            stratify=y_train)
+        else:
+            x_test, x_val, y_test, y_val = train_test_split(x_test, y_test,
+                                                                test_size=self.val_size,
+                                                                random_state=self.seed,
+                                                                # train_size=self.num_samples,
+                                                                stratify=y_test)
         if self.topic_discovery:
             if self.phase == 2:
 
@@ -329,7 +341,7 @@ class TextDataset(data.Dataset):
         
 
 
-        if not self.constrained_clustering:
+        if self.constrained_samples:
             constrained_samples = np.unique(c_df_train[['i', 'j']].values)
             print(f'\n\n Total no. of samples used for the constraints is {len(constrained_samples)}')
             print(f"\n length of xtrain was {len(x_train)}\nif we want to sample {self.num_constraints} constraints, we would be using {len(constrained_samples)} samples from the data for the baselines.\n\n")

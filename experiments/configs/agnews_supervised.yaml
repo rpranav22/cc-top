@@ -9,18 +9,19 @@ model_params:
 
 exp_params:
     dataset: 'agnews'
-    val_size: 8000
+    val_size: 0.5
     true_num_classes: 4
     batch_size: 512
-    max_length: 32
+    max_length: 64
     is_tensor: True
     constraintmatch: False
     constrained_clustering: False
+    constrained_samples: True
     num_workers: 0
     pin_memory: False
-    learning_rate: 0.00002
+    learning_rate: 0.00001
     adam_epsilon: 0.00000001
-    weight_decay: 0.01
+    weight_decay: 0.0001
     warmup_steps: 0
     num_constraints: 10000
     clean_text: False
@@ -34,5 +35,5 @@ trainer_params:
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'supervised_plm'
-    run_name: 'agnews_supervised_1k'
+    experiment_name: 'table2_agnews_supervised'
+    run_name: 'agnews_supervised'

@@ -2,10 +2,10 @@
 # bash script to repeat best model over folds
 
 # Specify the config file you want to tune
-CONFIG="trec_constrained.yaml"
+CONFIG="banking_constrained.yaml"
 
 # give the child a name
-NAME='trec'
+NAME='banking-l'
 
 IT=0
 
@@ -27,7 +27,7 @@ sbatch --partition=mcml-dgx-a100-40x8 --time=00-18:00:00 --job-name=$NAME-$IT --
 # TRASH for repeated runs/ hparams
 
 # for FOLD in 0 1 2 3 4; do
-#     sbatch --partition=dgx-a100 --job-name=$NAME-$IT --qos=mcml --output=/home/di39tih2/out/$NAME-$IT --error=/home/di39tih2/error/$NAME-$IT -D /home/di39tih2/sscc/experiments/ --gres=gpu:1 /home/di39tih2/sscc/experiments/run.py --config /home/di39tih2/sscc/experiments/configs/$CONFIG --fold $FOLD
+#     sbatch --partition=mcml-dgx-a100-40x8 --job-name=$NAME-$IT --qos=mcml --output=/home/di39tih2/out/$NAME-$IT --error=/home/di39tih2/error/$NAME-$IT -D /home/di39tih2/sscc/experiments/ --gres=gpu:1 /home/di39tih2/sscc/experiments/run.py --config /home/di39tih2/sscc/experiments/configs/$CONFIG --run_name $NAME-$FOLD
 #     if (( $IT == 0)); then
 #         sleep 60s
 #     fi
