@@ -1,6 +1,7 @@
 import pdb
 import random
 import numpy as np
+from sscc.data.yahoo import yahoo
 import torch
 from sklearn.metrics import accuracy_score
 
@@ -99,11 +100,12 @@ def supervised_collate_fn(batch, params):
     """
     transposed_data = list(zip(*batch))
     data = [default_collate(b) for b in transposed_data]
-    # print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {len(data), type(data)}, and params {params}\n\n")
+    # print(f"\n\n\n\nprinting from inside the collate fn \n\n\n {len(data), type(data[0])}, and params {params}\n\n")
 
     notes = list(data[0])
+    notes = [str(x) for x in notes]
     targets = data[1]
-    
+
     encoding = tokenizer.batch_encode_plus(
     notes,
     add_special_tokens=True,
@@ -250,6 +252,11 @@ def get_data(root, params, log_params, part):
 
     elif params['dataset'] == 'trec':
         data = trec(root=root,
+                       part=part,
+                       **params)
+    
+    elif params['dataset'] == 'yahoo':
+        data = yahoo(root=root,
                        part=part,
                        **params)
 

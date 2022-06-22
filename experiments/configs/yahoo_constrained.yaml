@@ -1,42 +1,36 @@
 model_params:
     model: 'constrained_clustering'
     loss: KCL
-    model_uri: 'mlruns/21/2efd82b73d6a412da8005b1c2545c02e/artifacts/final_model.pt'
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 100
+        num_classes: 10
 
 exp_params:
-    dataset: 'dbpedia'
-    true_num_classes: 14
+    dataset: 'yahoo'
+    true_num_classes: 10
     val_size: 0.5
     batch_size: 256
-    max_length: 64
+    max_length: 32
     num_constraints: 10000
-    num_samples: None
+    constraintmatch: False
     constrained_clustering: True
-    topic_discovery: True
-    train_type: 'testing'
-    test_set: 'd_test_1'
-    phase: 1
-    excluded_classes: [10,11,12,13]
     num_workers: 0
     pin_memory: False
     learning_rate: 0.00001
     adam_epsilon: 0.00000001
-    weight_decay: 0.0001
+    weight_decay: 0.00001
     warmup_steps: 0
     clean_text: False
     remove_stopwords: False
     k: NULL
     
 trainer_params:
-    max_epochs: 400
+    max_epochs: 200
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'table5_phase-1'
-    run_name: 'kcl_01_dt1_test'
+    experiment_name: 'yahoo_testing'
+    run_name: 'yahoo_kcl_10k'

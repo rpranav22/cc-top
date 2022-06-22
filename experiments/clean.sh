@@ -1,5 +1,5 @@
 #!/bin/bash
-for EXPID in {0..50}; do
+for EXPID in {0..22}; do
     echo $EXPID;
     find mlruns/$EXPID -name 'confmat_*' -exec rm {} \;
     find mlruns/$EXPID -name '*.ckpt' -exec rm {} \;

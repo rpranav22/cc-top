@@ -11,3 +11,9 @@
 * `srun --partition=mcml-dgx-a100-40x8 --gres=gpu:1 --qos=mcml --pty bash` to attach one GPU to your terminal (so you can debug, use it in interactive mode)
 * `scancel <job id>` to cancel one job with given id, `scancel {startID..stopID}` to kill a series of slurm jobs
 * error/ out messages are stored in `error/out` folders in cc-top repository
+
+
+## Add new dataset
+
+* add   `<dataset_name>.py` file to `sscc/data` folder and implement `download` function
+* adapt `get_data()` function in `sscc/data/utils`

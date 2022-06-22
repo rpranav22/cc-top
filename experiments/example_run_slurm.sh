@@ -2,16 +2,16 @@
 # bash script to repeat best model over folds
 
 # Specify the config file you want to tune
-CONFIG="banking_constrained.yaml"
+CONFIG="yahoo_constrained.yaml"
 
 # give the child a name
-NAME='banking-l'
+NAME='YHOq-test'
 
 IT=0
 
 # sbatch sends slurm run command to free gpu, until --gres everything is slurm options that tell slurm 
 # which/ how many gpu to run/ where your home directory is etc. lalal
-sbatch --partition=mcml-dgx-a100-40x8 --time=00-18:00:00 --job-name=$NAME-$IT --qos=mcml --output=/home/di39tih2/out/$NAME-$IT --error=/home/di39tih2/cc-top/error/$NAME-$IT -D /home/di39tih2/cc-top/experiments/ --gres=gpu:1 /home/di39tih2/cc-top/experiments/run_text.py --config /home/di39tih2/cc-top/experiments/configs/$CONFIG
+sbatch --partition=mcml-dgx-a100-40x8 --time=00-18:00:00 --job-name=$NAME-$IT --qos=mcml --output=/home/di39tih2/cc-top/out/$NAME-$IT --error=/home/di39tih2/cc-top/error/$NAME-$IT -D /home/di39tih2/cc-top/experiments/ --gres=gpu:1 /home/di39tih2/cc-top/experiments/run_text.py --config /home/di39tih2/cc-top/experiments/configs/$CONFIG
 
 # # 2nd run
 # CONFIG="dbpedia_supervised.yaml"

@@ -2,7 +2,6 @@ from operator import itemgetter
 import re
 import shutil
 from typing import List
-from cv2 import phase
 import numpy as np
 import pandas as pd
 import torch
@@ -65,7 +64,7 @@ class TextDataset(data.Dataset):
         if 'topic_discovery' in kwargs:
             self.topic_discovery = kwargs['topic_discovery']
             if 'phase' in kwargs:
-                self.phase = phase
+                self.phase = kwargs['phase']
             else:
                 self.phase = None
 
@@ -75,9 +74,12 @@ class TextDataset(data.Dataset):
         else:
             self.topic_discovery = None
         if 'num_samples' in kwargs:
-            self.num_samples = kwargs['num_samples']
+            if not kwargs['num_samples']:
+                self.num_samples = kwargs['num_samples']
+            else:
+                self.num_samples = 0.99
         else:
-            self.num_samples = None
+            self.num_samples = 0.99
         if 'train_type' in kwargs:
             self.train_type = kwargs['train_type']
         else: 
@@ -277,22 +279,23 @@ class TextDataset(data.Dataset):
 
         
         # os.mkdir(dataset_path)
-
         if self.topic_discovery:
-            if self.phase == 1:
+            if self.phase == 1 and not self.train_type=='testing' :
                 x_train, y_train = self.divide_dataset_by_classes(x_train, y_train)
                 # x_val, y_val = self.divide_dataset_by_classes(x_val, y_val)
                 if x_test:
                     x_test, y_test = self.divide_dataset_by_classes(x_test, y_test)
+                else:
+                    print("\n\nx_test not found so haven't dicided by classes")
 
 
 
-        if not y_test and not x_test:
-            x_train, x_test, y_train, y_test = train_test_split(x_train, y_train,
-                                                            test_size=self.test_size,
-                                                            random_state=self.seed,
-                                                            # train_size=self.num_samples,
-                                                            stratify=y_train)
+        # if not y_test in locals():
+        #     x_train, x_test, y_train, y_test = train_test_split(x_train, y_train,
+        #                                                     test_size=self.test_size,
+        #                                                     random_state=self.seed,
+        #                                                     # train_size=self.num_samples,
+        #                                                     stratify=y_train)
 
         if self.dataset == 'trec':
             x_train, x_val, y_train, y_val = train_test_split(x_train, y_train,
@@ -373,6 +376,9 @@ class TextDataset(data.Dataset):
                 print('path exists but empty af')
                 return True
             else:
+                if self.dataset_path.endswith('yahoo'):
+                    print('yahoooooooo')
+                    return False
                 if self.part=='train':
                     shutil.rmtree(self.dataset_path)
                     print(f'deleteing the contents of this path {self.dataset_path} and rebuilding dataset with constraints.')
