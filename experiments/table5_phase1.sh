@@ -2,12 +2,12 @@
 # bash script to repeat best model over folds
 
 # Specify the config file you want to tune
-CONFIG="dbpedia_td_p2.yaml"
+CONFIG="dbpedia_td_p1.yaml"
 
 # give the child a name
-NAME='DBPtd_01_p2_3v1'
+NAME='DBPtd_01_p2_2v2'
 
-RUN="kcl_10k_01_3v1"
+RUN="kcl_5k_01_2v2"
 
 IT=0
 

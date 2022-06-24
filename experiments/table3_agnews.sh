@@ -36,35 +36,35 @@ CONFIG="agnews_constrained.yaml"
 #     sleep 10s
 # done
 
-# give the child a name
-NAME3='AGNcc3'
+# # give the child a name
+# NAME3='AGNcc3'
 
-RUN3="kcl_20k"
+# RUN3="kcl_20k"
 
-IT=0
+# IT=0
 
-for FOLD in 0 1 2 3 4; do
-    sbatch --partition=mcml-dgx-a100-40x8 --time=01-00:00:00 --job-name=$NAME3-$FOLD --qos=mcml --output=/home/di39tih2/cc-top/out/$NAME3-$FOLD --error=/home/di39tih2/cc-top/error/$NAME3-$FOLD -D /home/di39tih2/cc-top/experiments/ --gres=gpu:1 /home/di39tih2/cc-top/experiments/run_text.py --config /home/di39tih2/cc-top/experiments/configs/$CONFIG --run_name $RUN3-$FOLD --num_constraints 20000 --max_epochs 150
-    if (( $IT == 0)); then
-        sleep 60s
-    fi
-    ((IT+=1))
-    sleep 10s
-done
+# for FOLD in 0 1 2 3 4; do
+#     sbatch --partition=mcml-dgx-a100-40x8 --time=01-00:00:00 --job-name=$NAME3-$FOLD --qos=mcml --output=/home/di39tih2/cc-top/out/$NAME3-$FOLD --error=/home/di39tih2/cc-top/error/$NAME3-$FOLD -D /home/di39tih2/cc-top/experiments/ --gres=gpu:1 /home/di39tih2/cc-top/experiments/run_text.py --config /home/di39tih2/cc-top/experiments/configs/$CONFIG --run_name $RUN3-$FOLD --num_constraints 20000 --max_epochs 150
+#     if (( $IT == 0)); then
+#         sleep 60s
+#     fi
+#     ((IT+=1))
+#     sleep 10s
+# done
 
 
-# give the child a name
-NAME4='AGNcc4'
+# # give the child a name
+# NAME4='AGNcc4'
 
-RUN4="kcl_30k"
+# RUN4="kcl_30k"
 
-IT=0
+# IT=0
 
-for FOLD in 0 1 2 3 4; do
-    sbatch --partition=mcml-dgx-a100-40x8 --time=01-00:00:00 --job-name=$NAME4-$FOLD --qos=mcml --output=/home/di39tih2/cc-top/out/$NAME4-$FOLD --error=/home/di39tih2/cc-top/error/$NAME4-$FOLD -D /home/di39tih2/cc-top/experiments/ --gres=gpu:1 /home/di39tih2/cc-top/experiments/run_text.py --config /home/di39tih2/cc-top/experiments/configs/$CONFIG --run_name $RUN4-$FOLD --num_constraints 30000 --max_epochs 100
-    if (( $IT == 0)); then
-        sleep 60s
-    fi
-    ((IT+=1))
-    sleep 10s
-done
+# for FOLD in 0 1 2 3 4; do
+#     sbatch --partition=mcml-dgx-a100-40x8 --time=01-00:00:00 --job-name=$NAME4-$FOLD --qos=mcml --output=/home/di39tih2/cc-top/out/$NAME4-$FOLD --error=/home/di39tih2/cc-top/error/$NAME4-$FOLD -D /home/di39tih2/cc-top/experiments/ --gres=gpu:1 /home/di39tih2/cc-top/experiments/run_text.py --config /home/di39tih2/cc-top/experiments/configs/$CONFIG --run_name $RUN4-$FOLD --num_constraints 30000 --max_epochs 100
+#     if (( $IT == 0)); then
+#         sleep 60s
+#     fi
+#     ((IT+=1))
+#     sleep 10s
+# done

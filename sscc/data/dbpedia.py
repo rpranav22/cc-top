@@ -32,11 +32,11 @@ class dbpedia(TextDataset):
     def download(self):
 
         if not self.should_download():
-            if self.part == 'train':
-                _, y, _= self.load_dataset(part=self.part)
-                # c_df_train = self.build_constraints(y, self.num_constraints, seed=self.seed)
-                # c_df_train.to_csv(f"{self.dataset_path}/C_train.csv")
-                return
+            # if self.part == 'train':
+            #     _, y, _= self.load_dataset(part=self.part)
+            #     # c_df_train = self.build_constraints(y, self.num_constraints, seed=self.seed)
+            #     # c_df_train.to_csv(f"{self.dataset_path}/C_train.csv")
+            #     return
             return
 
         self.data = load_dataset("dbpedia_14")

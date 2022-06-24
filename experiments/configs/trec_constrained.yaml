@@ -1,6 +1,6 @@
 model_params:
     model: 'constrained_clustering'
-    loss: KCL
+    loss: MCL
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
@@ -33,5 +33,5 @@ trainer_params:
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'table4_trec-coarse_oc'
+    experiment_name: 'table8_trec-coarse_oc'
     run_name: 'trec_kcl_10k'

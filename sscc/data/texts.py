@@ -195,6 +195,9 @@ class TextDataset(data.Dataset):
         x_l,y_l = zip(*labelled_set)
         x_ul,y_ul = zip(*unlabelled_set)
 
+        if self.train_type == 'testing':
+            return x_l, y_l, x_ul, y_ul
+
         if self.phase == 2:
             # pdb.set_trace()
             cdf_uri = "/".join(self.model_uri.split('/')[:-1]) + "/c_df_train.csv"
@@ -218,8 +221,10 @@ class TextDataset(data.Dataset):
                     print(f'\nlabelled: {len(x_1)}, unlabelled: {len(x_2)}, total: {len(x)}')
                
             if self.new_split == '3v1':
-                x_1, _, y_1, _ = train_test_split(x_l, y_l, train_size=1000, stratify=y_l)
-                x_2, _, y_2, _ = train_test_split(x_ul, y_ul, train_size=3000, stratify=y_ul)
+                n_l_samples = int((self.new_samples/4)*1)
+                n_ul_samples = int((self.new_samples/4)*3)
+                x_1, _, y_1, _ = train_test_split(x_l, y_l, train_size=n_l_samples, stratify=y_l)
+                x_2, _, y_2, _ = train_test_split(x_ul, y_ul, train_size=n_ul_samples, stratify=y_ul)
                 
                 
                 if self.train_type == 'finetune':
@@ -248,10 +253,9 @@ class TextDataset(data.Dataset):
 
         # pdb.set_trace()
 
-        print(f'final train size: {len(y_l)}')
+        print(f'final train size: {len(y)}')
 
-        if self.train_type == 'testing':
-            return x_l, y_l, x_ul, y_ul
+        
         
         return x, y
     
@@ -309,10 +313,10 @@ class TextDataset(data.Dataset):
                                                                 random_state=self.seed,
                                                                 # train_size=self.num_samples,
                                                                 stratify=y_test)
-        if self.topic_discovery:
+        if self.topic_discovery and not self.train_type == 'testing':
             if self.phase == 2:
 
-                x_train, y_train = self.divide_dataset_by_classes(x_train, y_train, 4000)
+                x_train, y_train = self.divide_dataset_by_classes(x_train, y_train)
 
         if self.train_type == 'testing':
 

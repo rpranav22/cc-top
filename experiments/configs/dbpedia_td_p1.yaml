@@ -1,7 +1,7 @@
 model_params:
     model: 'constrained_clustering'
     loss: KCL
-    model_uri: 'mlruns/21/2efd82b73d6a412da8005b1c2545c02e/artifacts/final_model.pt'
+    model_uri: 'mlruns/21/0bcb04807df74aff96387bed0a5aaf3f/artifacts/final_model.pt'
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
