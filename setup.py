@@ -3,8 +3,8 @@ import setuptools
 setuptools.setup(
     name="sscc",
     version="0.0.1",
-    author="Jann Goschenhofer",
-    author_email="jann.goschenhofer@iis.fraunhofer.de",
+    author="MM",
+    author_email="mm@mm.com",
     description="package for semi-supervised constrained clustering",
     url="foo.com",
     classifiers=[

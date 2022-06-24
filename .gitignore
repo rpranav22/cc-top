@@ -141,6 +141,5 @@ experiments/clustering_model.pickle
 experiments/x_test_embeddings.pickle
 experiments/nohup.out
 
-# jann slurm cluster
 error/
 out/
