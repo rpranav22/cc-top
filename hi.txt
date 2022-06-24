@@ -1,0 +1,8 @@
+hello pranav asdfoh
+
+
+Ja
+
+cctop_env
+
+python run_text.py -c "configs/dbpedia_constrained.yaml"

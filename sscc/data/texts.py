@@ -2,7 +2,6 @@ from operator import itemgetter
 import re
 import shutil
 from typing import List
-from cv2 import phase
 import numpy as np
 import pandas as pd
 import torch
@@ -60,11 +59,12 @@ class TextDataset(data.Dataset):
         self.k = k
         self.num_constraints = num_constraints
         self.seed = seed
+        self.dataset = kwargs['dataset']
 
         if 'topic_discovery' in kwargs:
             self.topic_discovery = kwargs['topic_discovery']
             if 'phase' in kwargs:
-                self.phase = phase
+                self.phase = kwargs['phase']
             else:
                 self.phase = None
 
@@ -74,9 +74,12 @@ class TextDataset(data.Dataset):
         else:
             self.topic_discovery = None
         if 'num_samples' in kwargs:
-            self.num_samples = kwargs['num_samples']
+            if not kwargs['num_samples']:
+                self.num_samples = kwargs['num_samples']
+            else:
+                self.num_samples = 0.99
         else:
-            self.num_samples = None
+            self.num_samples = 0.99
         if 'train_type' in kwargs:
             self.train_type = kwargs['train_type']
         else: 
@@ -89,6 +92,10 @@ class TextDataset(data.Dataset):
             self.model_uri = kwargs['model_uri']
         if 'excluded_classes' in kwargs:
             self.excluded_classes = kwargs['excluded_classes']
+        if 'constrained_samples' in kwargs:
+            self.constrained_samples = kwargs['constrained_samples']
+        else:
+            self.constrained_samples = None
 
     @property
     def size(self):
@@ -188,6 +195,9 @@ class TextDataset(data.Dataset):
         x_l,y_l = zip(*labelled_set)
         x_ul,y_ul = zip(*unlabelled_set)
 
+        if self.train_type == 'testing':
+            return x_l, y_l, x_ul, y_ul
+
         if self.phase == 2:
             # pdb.set_trace()
             cdf_uri = "/".join(self.model_uri.split('/')[:-1]) + "/c_df_train.csv"
@@ -211,8 +221,10 @@ class TextDataset(data.Dataset):
                     print(f'\nlabelled: {len(x_1)}, unlabelled: {len(x_2)}, total: {len(x)}')
                
             if self.new_split == '3v1':
-                x_1, _, y_1, _ = train_test_split(x_l, y_l, train_size=1000, stratify=y_l)
-                x_2, _, y_2, _ = train_test_split(x_ul, y_ul, train_size=3000, stratify=y_ul)
+                n_l_samples = int((self.new_samples/4)*1)
+                n_ul_samples = int((self.new_samples/4)*3)
+                x_1, _, y_1, _ = train_test_split(x_l, y_l, train_size=n_l_samples, stratify=y_l)
+                x_2, _, y_2, _ = train_test_split(x_ul, y_ul, train_size=n_ul_samples, stratify=y_ul)
                 
                 
                 if self.train_type == 'finetune':
@@ -241,10 +253,9 @@ class TextDataset(data.Dataset):
 
         # pdb.set_trace()
 
-        print(f'final train size: {len(y_l)}')
+        print(f'final train size: {len(y)}')
 
-        if self.train_type == 'testing':
-            return x_l, y_l, x_ul, y_ul
+        
         
         return x, y
     
@@ -272,32 +283,40 @@ class TextDataset(data.Dataset):
 
         
         # os.mkdir(dataset_path)
-
         if self.topic_discovery:
-            if self.phase == 1:
+            if self.phase == 1 and not self.train_type=='testing' :
                 x_train, y_train = self.divide_dataset_by_classes(x_train, y_train)
                 # x_val, y_val = self.divide_dataset_by_classes(x_val, y_val)
                 if x_test:
                     x_test, y_test = self.divide_dataset_by_classes(x_test, y_test)
+                else:
+                    print("\n\nx_test not found so haven't dicided by classes")
 
 
 
-        if not y_test and not x_test:
-            x_train, x_test, y_train, y_test = train_test_split(x_train, y_train,
-                                                            test_size=self.test_size,
-                                                            random_state=self.seed,
-                                                            # train_size=self.num_samples,
-                                                            stratify=y_train)
+        # if not y_test in locals():
+        #     x_train, x_test, y_train, y_test = train_test_split(x_train, y_train,
+        #                                                     test_size=self.test_size,
+        #                                                     random_state=self.seed,
+        #                                                     # train_size=self.num_samples,
+        #                                                     stratify=y_train)
 
-        x_train, x_val, y_train, y_val = train_test_split(x_train, y_train,
+        if self.dataset == 'trec':
+            x_train, x_val, y_train, y_val = train_test_split(x_train, y_train,
                                                             test_size=self.val_size,
                                                             random_state=self.seed,
                                                             # train_size=self.num_samples,
-                                                            stratify=y_test)
-        if self.topic_discovery:
+                                                            stratify=y_train)
+        else:
+            x_test, x_val, y_test, y_val = train_test_split(x_test, y_test,
+                                                                test_size=self.val_size,
+                                                                random_state=self.seed,
+                                                                # train_size=self.num_samples,
+                                                                stratify=y_test)
+        if self.topic_discovery and not self.train_type == 'testing':
             if self.phase == 2:
 
-                x_train, y_train = self.divide_dataset_by_classes(x_train, y_train, 4000)
+                x_train, y_train = self.divide_dataset_by_classes(x_train, y_train)
 
         if self.train_type == 'testing':
 
@@ -329,7 +348,7 @@ class TextDataset(data.Dataset):
         
 
 
-        if not self.constrained_clustering:
+        if self.constrained_samples:
             constrained_samples = np.unique(c_df_train[['i', 'j']].values)
             print(f'\n\n Total no. of samples used for the constraints is {len(constrained_samples)}')
             print(f"\n length of xtrain was {len(x_train)}\nif we want to sample {self.num_constraints} constraints, we would be using {len(constrained_samples)} samples from the data for the baselines.\n\n")
@@ -361,6 +380,9 @@ class TextDataset(data.Dataset):
                 print('path exists but empty af')
                 return True
             else:
+                if self.dataset_path.endswith('yahoo'):
+                    print('yahoooooooo')
+                    return False
                 if self.part=='train':
                     shutil.rmtree(self.dataset_path)
                     print(f'deleteing the contents of this path {self.dataset_path} and rebuilding dataset with constraints.')

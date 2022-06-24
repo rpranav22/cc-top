@@ -1,16 +1,16 @@
 model_params:
     model: 'constrained_clustering'
-    loss: KCL
+    loss: MCL
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 6
+        num_classes: 100
 
 exp_params:
     dataset: 'trec'
     true_num_classes: 6
-    val_size: 0.5
-    batch_size: 32
+    val_size: 500
+    batch_size: 256
     max_length: 64
     num_constraints: 10000
     constraintmatch: False
@@ -18,7 +18,7 @@ exp_params:
     coarse_grained: True 
     num_workers: 0
     pin_memory: False
-    learning_rate: 0.00002
+    learning_rate: 0.00001
     adam_epsilon: 0.00000001
     weight_decay: 0.00001
     warmup_steps: 0
@@ -27,11 +27,11 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 50
+    max_epochs: 150
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'chapter2'
+    experiment_name: 'table8_trec-coarse_oc'
     run_name: 'trec_kcl_10k'

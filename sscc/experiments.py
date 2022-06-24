@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader
 from torch import optim
 from torchvision.utils import save_image
 from pytorch_lightning.loggers import MLFlowLogger
+from ray.tune.integration.pytorch_lightning import TuneReportCallback
 
 from sscc.data.utils import constrained_collate_fn, supervised_collate_fn, constraint_match_collate_fn, get_data, compute_metrics
 from sscc.metrics import Evaluator
@@ -188,7 +189,10 @@ class Experiment(pl.LightningModule):
 
         for key, value in zip(scores.keys(), scores.values()): self.log(name=key, value=value)
 
-        self._save_model_mlflow()
+        if 'topic_discovery' in self.params:
+            
+            print("saving model")
+            self._save_model_mlflow()
 
         self.logger.experiment.log_param(key='run_name',
                                          value=self.run_name,

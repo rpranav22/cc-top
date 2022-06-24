@@ -4,15 +4,15 @@ model_params:
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 77
+        num_classes: 10
 
 exp_params:
-    dataset: 'banking'
-    true_num_classes: 77
+    dataset: 'yahoo'
+    true_num_classes: 10
     val_size: 0.5
     batch_size: 256
-    max_length: 64
-    num_constraints: 20000
+    max_length: 32
+    num_constraints: 10000
     constraintmatch: False
     constrained_clustering: True
     num_workers: 0
@@ -32,5 +32,5 @@ trainer_params:
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'banking_test'
-    run_name: 'banking_kcl_20k'
+    experiment_name: 'yahoo_testing'
+    run_name: 'yahoo_kcl_10k'

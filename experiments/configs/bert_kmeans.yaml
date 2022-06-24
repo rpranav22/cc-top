@@ -5,18 +5,20 @@ model_params:
         arch: 'bert_kmeans'
         sentence_transformer: True
         base_model: 'bert-base-uncased'
-        num_classes: 77
+        num_classes: 6
 
 exp_params:
-    dataset: 'banking'
-    true_num_classes: 77
-    val_size: 0.5
+    dataset: 'trec'
+    true_num_classes: 6
+    val_size: 0.1
     batch_size: 128
     max_length: 64
-    num_constraints: 1000
+    num_constraints: 10000
     is_tensor: True
     constraintmatch: False
     constrained_clustering: False
+    constrained_samples: False
+    coarse_grained: True
     num_workers: 0
     pin_memory: False
     learning_rate: 0.00001
@@ -35,4 +37,4 @@ trainer_params:
 logging_params:
     manual_seed: 1337
     experiment_name: 'ch1_unsupervised'
-    run_name: 'banking_bert-kmeans_1k'
+    run_name: 'trec_bert-kmeans'

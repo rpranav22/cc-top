@@ -4,26 +4,26 @@ model_params:
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 47
+        num_classes: 6
         
-
 exp_params:
     dataset: 'trec'
     val_size: 0.1
-    true_num_classes: 47
-    batch_size: 64
-    max_length: 32
+    true_num_classes: 6
+    batch_size: 256
+    max_length: 64
+    num_constraints: 10000
     is_tensor: True
     constraintmatch: False
     constrained_clustering: False
-    coarse_grained: False
+    constrained_samples: True
+    coarse_grained: True
     num_workers: 0
     pin_memory: False
     learning_rate: 0.00001
     adam_epsilon: 0.00000001
     weight_decay: 0.0001
     warmup_steps: 0
-    num_constraints: 20000
     clean_text: False
     remove_stopwords: False
     k: NULL
@@ -35,5 +35,5 @@ trainer_params:
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'supervised_plm'
-    run_name: 'trec_fine-grained_supervised'
+    experiment_name: 'table3_trec_supervised'
+    run_name: 'trec_coarse-grained_supervised'

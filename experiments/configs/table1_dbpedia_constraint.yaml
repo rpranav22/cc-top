@@ -4,20 +4,20 @@ model_params:
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 77
+        num_classes: 14
 
 exp_params:
-    dataset: 'banking'
-    true_num_classes: 77
+    dataset: 'dbpedia'
+    true_num_classes: 14
     val_size: 0.5
     batch_size: 256
     max_length: 64
-    num_constraints: 20000
+    num_constraints: 10000
     constraintmatch: False
     constrained_clustering: True
     num_workers: 0
     pin_memory: False
-    learning_rate: 0.00001
+    learning_rate: 0.00002
     adam_epsilon: 0.00000001
     weight_decay: 0.00001
     warmup_steps: 0
@@ -26,11 +26,11 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 200
-    min_epochs: 1
+    max_epochs: 50
+    min_epochs: 50
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'banking_test'
-    run_name: 'banking_kcl_20k'
+    experiment_name: 'table1_dbpedia'
+    run_name: 'trec_kcl_10k'
