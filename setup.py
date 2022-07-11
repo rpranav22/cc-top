@@ -1,12 +1,12 @@
 import setuptools
 
 setuptools.setup(
-    name="sscc",
+    name="cctop",
     version="0.0.1",
     author="MM",
-    author_email="mm@mm.com",
-    description="package for semi-supervised constrained clustering",
-    url="foo.com",
+    author_email="anon@anonymous.com",
+    description="package for the cctop project",
+    url="cctop.com",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

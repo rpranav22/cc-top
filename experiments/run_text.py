@@ -1,27 +1,20 @@
 #!/usr/bin/env python
-from cgi import test
 import os
-import pdb
 import tempfile
-from unittest import TestResult
 import yaml
 import argparse
 import torch 
 # from transformers import Trainer, TrainingArguments
 import numpy as np
-import torch.backends.cudnn as cudnn
-from sscc import experiments
-from sscc.data.newsgroups import newsgroups
-from sscc.data.utils import get_data
+from cctop.data.utils import get_data
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
-from pytorch_lightning.callbacks import LearningRateMonitor, GPUStatsMonitor, DeviceStatsMonitor
-from pytorch_lightning.profiler import PyTorchProfiler
-# import torch.profiler
-from sscc.experiments import Experiment, save_dict_as_yaml_mlflow
-from sscc.metrics import Evaluator
-from sscc.utils import *
+from pytorch_lightning.callbacks import LearningRateMonitor
+
+from cctop.experiments import Experiment, save_dict_as_yaml_mlflow
+from cctop.metrics import Evaluator
+from cctop.utils import *
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -53,8 +46,6 @@ def output_fn(p):
    p.export_chrome_trace("./trace/resnet50_4/worker0.pt.trace.json")
 
 def run_experiment(args):
-    # torch.multiprocessing.set_start_method('spawn')
-    # time.sleep(30)
     with open(args.filename, 'r') as file:
         try:
             config = yaml.safe_load(file)
@@ -67,7 +58,6 @@ def run_experiment(args):
 
     # compile model
     model = parse_model_config(config)
-    # print(model)
     # instantiate logger
     mlflow_logger = MLFlowLogger(experiment_name=config['logging_params']['experiment_name'], run_name=config['logging_params']['run_name'])
 
@@ -117,7 +107,6 @@ def run_experiment(args):
                                       logger=mlflow_logger,
                                       true_k=params['true_num_classes'])
         mlflow_logger.log_metrics(test_results)
-        # pdb.set_trace()
 
     else:
         print("Using LightningModule")
@@ -131,9 +120,6 @@ def run_experiment(args):
                     print(f"using model {model_uri} ")
                     model.load_state_dict(torch.load(model_uri)['state_dict'])
                     train_type = config['exp_params']['train_type']
-                    # for param in model.model.bert.parameters():
-                    #     param.requires_grad=False
-                    # pdb.set_trace()
 
         experiment = Experiment(model,
                                 params=config['exp_params'],
@@ -142,7 +128,6 @@ def run_experiment(args):
                                 trainer_params=config['trainer_params'],
                                 run_name=config['logging_params']['run_name'],
                                 experiment_name=config['logging_params']['experiment_name'])
-
 
         print(f"Primer:  train data size:{len(experiment.train_data)}, train_constraints: {len(experiment.train_data.c)}, test_size:{len(experiment.test_data.y)}, test_con: {len(experiment.test_data.c)}, val_size:{len(experiment.val_data.y)}, val_con: {len(experiment.val_data.c)}")
         print(f'sample data: {experiment.train_data.x[0]} \t label: {experiment.train_data.y[0]}')
@@ -153,27 +138,19 @@ def run_experiment(args):
         print(f'\n\n Total no. of samples used for the constraints is {num_samples}')
 
         mlflow_logger.log_hyperparams({'total_samples': num_samples})
-        # model.run_lda(train_data.x)
         with tempfile.TemporaryDirectory() as tmp_dir:
                 storage_path = os.path.join(tmp_dir, 'c_df_train.csv')
                 experiment.train_data.c.to_csv(storage_path)
                 mlflow_logger.experiment.log_artifact(local_path=storage_path, run_id=mlflow_logger.run_id)
-
-        # pytorch_profiler = torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CUDA], record_shapes=True, profile_memory=True)
-        # pytorch_profiler = PyTorchProfiler(activities=[torch.profiler.ProfilerActivity.CUDA], dirpath='./supervised_profiler/', filename='new_profiler', export_to_chrome=True, record_shapes=True, profile_memory=True, use_cuda=True)
-        # torch.profiler.tensorboard_trace_handler('./log/constrained_clustering')
         
         trainer = Trainer(
-                        reload_dataloaders_every_epoch=False,
                         log_every_n_steps=100,
                         gpus=-1,
-                        # amp_backend='native',
                         precision=16,
                         checkpoint_callback=True,
                         logger=mlflow_logger,
                         check_val_every_n_epoch=1,
                         callbacks=[LearningRateMonitor(logging_interval='step')],
-                        # profiler = pytorch_profiler,
                         **config['trainer_params'] 
         )
 
@@ -182,11 +159,6 @@ def run_experiment(args):
         else:
             trainer.fit(experiment)
             trainer.test()
-
-    print("I have reached till here")
-
-
-
 
 if __name__ == "__main__":
     args = parse_args()
