@@ -1,19 +1,25 @@
-# CCTop
+# CC-Top
 
-## run things
+This is the code accompanying the submission "CC-Top - Leveraging pairwise constraints for topic classification" for review at EMNLP 2022. 
 
-* For local GPU: from `experiments` run `python run_text.py --config configs/dbpedia_constraint.yaml`
-* For SLURM run: from `experiments` run `bash example_run_slurm.sh` which uses slurm lingo
+## Setup
 
-## work with cluster
+* create a fresh conda environment  
+* pip install all dependencies via `requirements.txt`
+* install the local helper package `cctop` via `pip install -e .` in elastic mode
+* test your install via `python run_text.py --config configs/test_cctop.yaml`
 
-* `squeue` to check traffic on cluster
-* `srun --partition=mcml-dgx-a100-40x8 --gres=gpu:1 --qos=mcml --pty bash` to attach one GPU to your terminal (so you can debug, use it in interactive mode)
-* `scancel <job id>` to cancel one job with given id, `scancel {startID..stopID}` to kill a series of slurm jobs
-* error/ out messages are stored in `error/out` folders in cc-top repository
+## Training runs
 
+* Clustering training: `python run_text.py --config configs/dbpedia_clustering.yaml`
+* Supervised training: `python run_text.py --config configs/dbpedia_supervised.yaml`
+* Constrained training: `python run_text.py --config configs/dbpedia_constrained.yaml`
+* Overclustering with constraints: `python run_text.py --config configs/dbpedia_constrained_overclustering.yaml`
+* Dynamic Topic Discovery with constraints: 
 
-## Add new dataset
+## Replicate benchmarks
 
-* add   `<dataset_name>.py` file to `sscc/data` folder and implement `download` function
-* adapt `get_data()` function in `sscc/data/utils`
+## Extend towards new dataset
+
+* add `<dataset_name>.py` file to `cctop/data` folder and implement `download` function
+* adapt `get_data()` function in `cctop/data/utils`

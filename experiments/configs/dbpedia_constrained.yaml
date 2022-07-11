@@ -4,7 +4,7 @@ model_params:
     architecture:
         arch: bert_classifier
         base_model: 'bert-base-uncased'
-        num_classes: 100
+        num_classes: 14
 
 exp_params:
     dataset: 'dbpedia'
@@ -26,11 +26,11 @@ exp_params:
     k: NULL
     
 trainer_params:
-    max_epochs: 200
+    max_epochs: 100
     min_epochs: 1
     
 
 logging_params:
     manual_seed: 1337
-    experiment_name: 'table8_dbpedia_oc'
-    run_name: 'kcl_10k'
+    experiment_name: 'foo'
+    run_name: 'constrained'
