@@ -17,7 +17,7 @@ exp_params:
     num_samples: None
     constrained_clustering: True
     topic_discovery: True
-    train_type: 'testing'
+    train_type: 'training'
     test_set: 'd_test_1'
     phase: 1
     excluded_classes: [10,11,12,13]

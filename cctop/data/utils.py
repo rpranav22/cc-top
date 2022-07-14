@@ -226,16 +226,8 @@ def compute_metrics(preds, labels):
 def get_data(root, params, log_params, part):
     """
     """
-    if params['dataset'] == 'cifar10':
-        data = CIFAR10(root=root,
-                       part=part,
-                       val_size=params['val_size'],
-                       num_constraints=params['num_constraints'],
-                       k=params['k'],
-                       transform=transforms_cifar10_train if part=='train' else transforms_cifar10_test,
-                       fold=params['fold'],
-                       seed=log_params['manual_seed'])
-    elif params['dataset'] == 'newsgroups':
+
+    if params['dataset'] == 'newsgroups':
         data = newsgroups(root=root,
                        part=part,
                        **params
@@ -266,49 +258,4 @@ def get_data(root, params, log_params, part):
                         part=part,
                         **params)
 
-    elif params['dataset'] == 'cifar20':
-        data = CIFAR20(root=root,
-                       part=part,
-                       val_size=params['val_size'],
-                       num_constraints=params['num_constraints'],
-                       k=params['k'],
-                       transform=transforms_cifar10_train if part=='train' else transforms_cifar10_test,
-                       fold=params['fold'],
-                       seed=log_params['manual_seed'])
-    elif params['dataset'] == 'mnist':
-        data = MNIST(root=root,
-                     part=part,
-                     val_size=params['val_size'],
-                     num_constraints=params['num_constraints'],
-                     k=params['k'],
-                     fold=params['fold'],
-                     transform=transforms_mnist_train if part=='train' else transforms_mnist_test,
-                     seed=log_params['manual_seed'])
-    elif params['dataset'] == 'fashionmnist':
-        data = FASHIONMNIST(root=root,
-                            part=part,
-                            val_size=params['val_size'],
-                            num_constraints=params['num_constraints'],
-                            k=params['k'],
-                            fold=params['fold'],
-                            transform=transforms_fmnist_train if part=='train' else transforms_fmnist_test,
-                            seed=log_params['manual_seed'])
-    elif params['dataset'] == 'yaleb':
-        data = YaleB(root=root,
-                     part=part,
-                     val_size=params['val_size'],
-                     num_constraints=params['num_constraints'],
-                     k=params['k'],
-                     fold=params['fold'],
-                     transform=None,
-                     seed=log_params['manual_seed'])
-    elif params['dataset'] == 'yalebext':
-        data = YaleBExt(root=root,
-                        part=part,
-                        val_size=params['val_size'],
-                        num_constraints=params['num_constraints'],
-                        k=params['k'],
-                        fold=params['fold'],
-                        transform=transforms_yaleb_train if part=='train' else None,
-                        seed=log_params['manual_seed'])
     return data
