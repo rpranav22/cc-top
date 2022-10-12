@@ -1,6 +1,6 @@
 # CC-Top
 
-This is the anonymous codebase accompanying the submission "CC-Top - Leveraging pairwise constraints for topic classification" for review at EMNLP 2022. 
+This is the anonymous codebase accompanying the submission "CC-Top: Constrained Clustering for Dynamic Topic Discovery". 
 
 ## Setup
 
