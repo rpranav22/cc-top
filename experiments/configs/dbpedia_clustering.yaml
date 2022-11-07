@@ -1,37 +1,40 @@
 model_params:
-    model: 'supervised_plm'
+    model: 'bert_kmeans'
     loss: None
     architecture:
-        arch: bert_classifier
+        arch: 'bert_kmeans'
+        sentence_transformer: True
         base_model: 'bert-base-uncased'
         num_classes: 14
-        
+
 exp_params:
     dataset: 'dbpedia'
-    val_size: 0.5
     true_num_classes: 14
-    batch_size: 256
+    val_size: 0.1
+    batch_size: 128
     max_length: 64
+    num_constraints: 10000
     is_tensor: True
     constraintmatch: False
     constrained_clustering: False
-    constrained_samples: True
+    constrained_samples: False
+    coarse_grained: True
     num_workers: 0
     pin_memory: False
-    learning_rate: 0.00002
+    learning_rate: 0.00001
     adam_epsilon: 0.00000001
-    weight_decay: 0.0001
+    weight_decay: 0.01
     warmup_steps: 0
-    num_constraints: 20000
     clean_text: False
     remove_stopwords: False
     k: NULL
     
 trainer_params:
-    max_epochs: 100
+    max_epochs: 10
     min_epochs: 1
     
+
 logging_params:
     manual_seed: 1337
-    experiment_name: 'table3_dbpedia_supervised'
-    run_name: 'supervised'
+    experiment_name: 'clustering_unsupervised'
+    run_name: 'dbpedia_bert-kmeans'

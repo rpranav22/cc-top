@@ -17,9 +17,9 @@ exp_params:
     new_samples: 9000
     constrained_clustering: True
     topic_discovery: True
-    train_type: 'testing'
+    train_type: 'finetune'
     test_set: 'combined'
-    new_split: '3v1'
+    new_split: '2v2'
     phase: 2
     excluded_classes: [0,1,2,3,4,5,6,7,8,9]
     num_workers: 0
