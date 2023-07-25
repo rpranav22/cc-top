@@ -1,4 +1,10 @@
-# CC-Top
+# CC-Top: Constrained Clustering for Dynamic Topic Discovery
+
+## Abstract
+Research on multi-class text classification of short texts mainly focuses on supervised (transfer) learning approaches, requiring a finite set of pre-defined classes which is constant over time. This work explores deep constrained clustering (CC) as an alternative to supervised learning approaches in a setting with a dynamically changing number of classes, a task we introduce as dynamic topic discovery (DTD).We do so by using pairwise similarity constraints instead of instance-level class labels which allow for a flexible number of classes while exhibiting a competitive performance compared to supervised approaches. First, we substantiate this through a series of experiments and show that CC algorithms exhibit a predictive performance similar to state-of-the-art supervised learning algorithms while requiring less annotation effort.Second, we demonstrate the overclustering capabilities of deep CC for detecting topics in short text data sets in the absence of the ground truth class cardinality during model training.Third, we showcase that these capabilities can be leveraged for the DTD setting as a step towards dynamic learning over time and finally, we release our codebase to nurture further research in this area.
+
+### [Link to paper 📝](https://aclanthology.org/2022.evonlp-1.5/)
+
 
 This is the anonymous codebase accompanying the submission "CC-Top: Constrained Clustering for Dynamic Topic Discovery". 
 
